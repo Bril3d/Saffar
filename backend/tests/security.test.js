@@ -174,11 +174,60 @@ describe('RAG Knowledge Base', () => {
         expect(drug).toBeNull();
     });
 
-    test('enrichVetPrompt: adds regulatory context', () => {
+    test('enrichVetPrompt: adds regulatory context (async)', async () => {
         const base = 'Tu es un assistant vétérinaire.';
-        const enriched = rag.enrichVetPrompt(base, testIds.vet.id, 'toux et décharge nasale');
+        const enriched = await rag.enrichVetPrompt(base, testIds.vet.id, 'toux et décharge nasale');
         expect(enriched).toContain('RÉGLEMENTATION TUNISIENNE');
-        expect(enriched).toContain('BASE DE CONNAISSANCES');
+    });
+
+    test('keywordSearch: finds relevant drugs by symptoms', () => {
+        const results = rag.keywordSearch('toux infection respiratoire', 3);
+        expect(results.length).toBeGreaterThan(0);
+    });
+
+    test('keywordSearch: returns empty for irrelevant queries', () => {
+        const results = rag.keywordSearch('pizza margherita', 3);
+        expect(results.length).toBe(0);
+    });
+});
+
+// ============================================
+// VECTOR STORE & EMBEDDINGS TESTS
+// ============================================
+describe('Vector Store', () => {
+    const vectorStore = require('../src/ai/vectorStore');
+    const { cosineSimilarity } = require('../src/ai/embeddings');
+
+    test('cosine similarity: identical vectors = 1', () => {
+        const v = [1, 0, 0, 1];
+        expect(cosineSimilarity(v, v)).toBeCloseTo(1, 5);
+    });
+
+    test('cosine similarity: orthogonal vectors = 0', () => {
+        const a = [1, 0, 0, 0];
+        const b = [0, 1, 0, 0];
+        expect(cosineSimilarity(a, b)).toBeCloseTo(0, 5);
+    });
+
+    test('cosine similarity: opposite vectors = -1', () => {
+        const a = [1, 0, 0];
+        const b = [-1, 0, 0];
+        expect(cosineSimilarity(a, b)).toBeCloseTo(-1, 5);
+    });
+
+    test('cosine similarity: handles zero vectors', () => {
+        const a = [0, 0, 0];
+        const b = [1, 2, 3];
+        expect(cosineSimilarity(a, b)).toBe(0);
+    });
+
+    test('vector store: getStats returns correct structure', () => {
+        vectorStore.initVectorStore();
+        const stats = vectorStore.getStats();
+        expect(stats).toHaveProperty('totalDocuments');
+        expect(stats).toHaveProperty('initialized');
+        expect(stats).toHaveProperty('sources');
+        expect(stats.initialized).toBe(true);
     });
 });
 

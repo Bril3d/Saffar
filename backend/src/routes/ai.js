@@ -14,6 +14,7 @@ const { getDb } = require('../db/db');
 const ollama = require('../ai/ollama');
 const rag = require('../ai/rag');
 const guardrails = require('../ai/guardrails');
+const vectorStore = require('../ai/vectorStore');
 const sdk = require('../sdk/safar-sdk');
 
 const router = express.Router();
@@ -44,7 +45,7 @@ router.post('/assistant/vet', authenticate, requireRole('VET'), validate(vetAssi
         const basePrompt = ollama.loadPrompt('vet_assistant');
 
         // 2. RAG: Enrich with DB context + knowledge base
-        const enrichedPrompt = rag.enrichVetPrompt(basePrompt, req.user.id, symptoms);
+        const enrichedPrompt = await rag.enrichVetPrompt(basePrompt, req.user.id, symptoms);
 
         // 3. Build sanitized user message
         const userMessage = ollama.sanitizeInput(
@@ -104,7 +105,7 @@ router.post('/assistant/farmer', authenticate, requireRole('FARMER'), validate(f
         const basePrompt = ollama.loadPrompt('farmer_assistant');
 
         // 2. RAG: Enrich with farmer context
-        const enrichedPrompt = rag.enrichFarmerPrompt(basePrompt, req.user.id, lotId);
+        const enrichedPrompt = await rag.enrichFarmerPrompt(basePrompt, req.user.id, lotId, question);
 
         // 3. Sanitize user input
         const userMessage = ollama.sanitizeInput(question);
@@ -147,7 +148,7 @@ router.post('/explain/trace', optionalAuth, validate(traceExplainSchema), async 
         const basePrompt = ollama.loadPrompt('trace_explain');
 
         // 2. RAG: Enrich with trace context from DB
-        const enrichedPrompt = rag.enrichTracePrompt(basePrompt, lotId);
+        const enrichedPrompt = await rag.enrichTracePrompt(basePrompt, lotId);
 
         // 3. Generate with Ollama
         const result = await ollama.generate(enrichedPrompt, 'Explique cette traçabilité au consommateur.', { temperature: 0.5 });
@@ -180,6 +181,8 @@ router.post('/explain/trace', optionalAuth, validate(traceExplainSchema), async 
 // GET /api/ai/status — PUBLIC health check
 router.get('/status', async (req, res) => {
     const ollamaUp = await ollama.isAvailable();
+    const { isAvailable: embedAvail } = require('../ai/embeddings');
+    const embedUp = await embedAvail();
     let pythonUp = false;
     let modelsLoaded = 0;
     try {
@@ -188,11 +191,15 @@ router.get('/status', async (req, res) => {
         modelsLoaded = resp.data?.count || 0;
     } catch {}
 
+    const vectorStats = vectorStore.getStats();
+
     res.json(success({
         ollama: { available: ollamaUp, model: process.env.OLLAMA_MODEL || 'phi3:mini' },
+        embeddings: { available: embedUp, model: process.env.OLLAMA_EMBED_MODEL || 'nomic-embed-text' },
+        vectorStore: vectorStats,
         anomalyService: { available: pythonUp, modelsLoaded },
-        guardrails: { enabled: true, version: '1.0' },
-        rag: { enabled: true, knowledgeBase: 'regulatory.json' }
+        guardrails: { enabled: true, version: '2.0' },
+        rag: { enabled: true, type: 'embedding-based', knowledgeBase: 'regulatory.json' }
     }));
 });
 
