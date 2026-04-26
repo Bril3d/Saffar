@@ -12,3 +12,25 @@ jest.mock('expo-secure-store', () => ({
     mockSecureStore.set(key, value);
   }),
 }));
+
+jest.mock('expo-sqlite', () => ({
+  openDatabaseSync: jest.fn(() => ({
+    execAsync: jest.fn(),
+    getAllAsync: jest.fn(),
+    getFirstAsync: jest.fn(),
+    runAsync: jest.fn(),
+    withTransactionAsync: jest.fn(),
+  })),
+}));
+
+jest.mock('@react-native-community/netinfo', () => ({
+  addEventListener: jest.fn(),
+  fetch: jest.fn().mockResolvedValue({ isInternetReachable: true }),
+  useNetInfo: jest.fn().mockReturnValue({ isInternetReachable: true }),
+}));
+
+jest.mock('expo-local-authentication', () => ({
+  hasHardwareAsync: jest.fn().mockResolvedValue(true),
+  isEnrolledAsync: jest.fn().mockResolvedValue(true),
+  authenticateAsync: jest.fn().mockResolvedValue({ success: true }),
+}));

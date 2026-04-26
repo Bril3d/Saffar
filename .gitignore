@@ -44,3 +44,6 @@ app-example
 
 skills-lock.json    
 .agents/
+
+plan.md
+abattoir.test.tsx.snap
