@@ -17,15 +17,26 @@ export default function AbattoirHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="ABATTOIR"
-        subtitle="Verification eligibilite et certification on-chain."
-        title="Tableau de bord"
+        role={{ label: 'Abattoir', accent: colors.role.slaughterhouse }}
+        breadcrumb="Tableau de bord"
+        subtitle="Vérification éligibilité et certification on-chain."
+        title="Abattoir Medjez El Bab"
       />
 
       <Row>
-        <Stat label="Lots verifies" tone="info" value="18" />
-        <Stat label="Eligibles" tone="success" value="14" />
-        <Stat label="Rejetes" tone="danger" value="4" />
+        <Stat
+          label="Lots vérifiés"
+          tone="info"
+          value="18"
+          delta={{ direction: 'up', value: '+4', label: 'aujourd’hui' }}
+        />
+        <Stat label="Éligibles" tone="success" value="14" />
+        <Stat
+          label="Rejetés"
+          tone="danger"
+          value="4"
+          delta={{ direction: 'down', value: '-1', label: 'vs. hier' }}
+        />
       </Row>
 
       <Card tone="info">

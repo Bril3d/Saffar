@@ -5,16 +5,17 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { TrustScore } from '@/components/TrustScore';
 import {
-  Button,
-  Card,
-  Divider,
-  PageHeader,
-  Row,
-  Screen,
-  SectionTitle,
-  SegmentedControl,
-  TextField,
+    Button,
+    Card,
+    Divider,
+    PageHeader,
+    Row,
+    Screen,
+    SectionTitle,
+    SegmentedControl,
+    TextField,
 } from '@/components/app-ui';
+import { AR_PRODUCT_KINDS, AR_REGIONS, formatPrice } from '@/constants/locale';
 import { colors, spacing, typography } from '@/constants/theme';
 import { getProducts } from '@/services/api';
 import { type Product } from '@/services/mockData';
@@ -40,11 +41,12 @@ export default function ConsumerHomeScreen() {
   };
 
   return (
-    <Screen>
+    <Screen variant="warm">
       <PageHeader
-        eyebrow="CONSOMMATEUR"
-        subtitle="Catalogue certifie avec tracabilite publique."
-        title="Marche certifie"
+        role={{ label: 'Consommateur', accent: colors.role.consumer }}
+        breadcrumb="Marketplace"
+        subtitle="Manger sain. Tracé sur la chaîne."
+        title="Marché certifié"
       />
 
       <TextField label="Recherche" onChangeText={setSearch} placeholder="Poulet, oeufs..." value={search} />
@@ -74,37 +76,46 @@ export default function ConsumerHomeScreen() {
       </Row>
 
       <SectionTitle>Produits</SectionTitle>
-      {visibleProducts.map((product) => (
-        <Card key={product.id}>
-          <Text style={styles.productTitle}>{product.title}</Text>
-          <Text style={styles.productLabel}>{product.imageLabel}</Text>
-          <View style={styles.productRow}>
-            <TrustScore value={product.trustScore} />
-          </View>
-          <View style={styles.priceRow}>
-            <View style={styles.priceInfo}>
-              <Text style={styles.price}>{product.price} TND / {product.unit}</Text>
-              <Text style={styles.region}>{product.farmRegion}</Text>
-              <AWaReBadge awareClass={product.awareClass} />
+      {visibleProducts.map((product) => {
+        const arRegion = AR_REGIONS[product.farmRegion];
+        const arKind = AR_PRODUCT_KINDS[product.category];
+        return (
+          <Card key={product.id}>
+            <Text style={styles.productTitle}>{product.title}</Text>
+            {arRegion && arKind ? (
+              <Text style={styles.productAr}>{`${arKind} — ${arRegion}`}</Text>
+            ) : null}
+            <Text style={styles.productLabel}>{product.imageLabel}</Text>
+            <View style={styles.productRow}>
+              <TrustScore score={product.trustScore} compact />
             </View>
-          </View>
-          <Row gap={spacing.sm}>
-            <Button
-              compact
-              onPress={() =>
-                router.push({ pathname: '/consumer/product-detail', params: { id: product.id } })
-              }>
-              Voir
-            </Button>
-            <Button
-              variant="secondary"
-              compact
-              onPress={() => router.push({ pathname: '/consumer/checkout', params: { id: product.id } })}>
-              Commander
-            </Button>
-          </Row>
-        </Card>
-      ))}
+            <View style={styles.priceRow}>
+              <View style={styles.priceInfo}>
+                <Text style={styles.price}>
+                  {formatPrice(product.price)} / {product.unit}
+                </Text>
+                <Text style={styles.region}>{product.farmRegion}</Text>
+                <AWaReBadge awareClass={product.awareClass} />
+              </View>
+            </View>
+            <Row gap={spacing.sm}>
+              <Button
+                compact
+                onPress={() =>
+                  router.push({ pathname: '/consumer/product-detail', params: { id: product.id } })
+                }>
+                Voir
+              </Button>
+              <Button
+                variant="secondary"
+                compact
+                onPress={() => router.push({ pathname: '/consumer/checkout', params: { id: product.id } })}>
+                Commander
+              </Button>
+            </Row>
+          </Card>
+        );
+      })}
 
       <Divider />
       <Button variant="ghost" onPress={signOut}>Se deconnecter</Button>
@@ -122,6 +133,13 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: colors.text.primary,
     fontSize: 18,
+    fontVariant: ['tabular-nums'],
+  },
+  productAr: {
+    color: colors.accent.sand,
+    fontSize: 13,
+    letterSpacing: 0.3,
+    textAlign: 'right',
   },
   priceInfo: {
     gap: spacing.xs,

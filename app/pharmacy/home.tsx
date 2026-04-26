@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat } from '@/components/app-ui';
 import { colors, typography } from '@/constants/theme';
-import { useAuthStore } from '@/store/authStore';
 import { drugSales } from '@/services/mockData';
+import { useAuthStore } from '@/store/authStore';
 
 export default function PharmacyHomeScreen() {
   const logout = useAuthStore((state) => state.logout);
@@ -18,15 +18,26 @@ export default function PharmacyHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="PHARMACIE"
+        role={{ label: 'Pharmacie', accent: colors.role.pharmacy }}
+        breadcrumb="Tableau de bord"
         subtitle="Ventes suivies avec classification AWaRe et hash on-chain."
-        title="Tableau de bord"
+        title="Bonjour, Pharmacie El Manar"
       />
 
       <Row>
-        <Stat label="Ventes ce mois" tone="success" value="42" />
-        <Stat label="Veterinaires" tone="info" value="12" />
-        <Stat label="Doses dispensees" tone="warning" value="1.8k" />
+        <Stat
+          label="Ventes ce mois"
+          tone="success"
+          value="42"
+          delta={{ direction: 'up', value: '+8%', label: 'vs. mois dernier' }}
+        />
+        <Stat label="Vétérinaires" tone="info" value="12" />
+        <Stat
+          label="Doses dispensées"
+          tone="warning"
+          value="1 842"
+          delta={{ direction: 'up', value: '+124', label: '7j' }}
+        />
       </Row>
 
       <Button onPress={() => router.push('/pharmacy/new-sale')}>

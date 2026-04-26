@@ -29,8 +29,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={safarDark}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_bottom',
+          animationDuration: 280,
+        }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="(public)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="pharmacy" />
         <Stack.Screen name="vet" />

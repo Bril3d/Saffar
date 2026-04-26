@@ -1,13 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
+import { Button, Card, Divider, PageHeader, Screen, SectionTitle, StatusChip } from '@/components/app-ui';
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { BlockchainHash } from '@/components/BlockchainHash';
-import { TrustScore } from '@/components/TrustScore';
-import { Button, Card, Divider, PageHeader, Screen, SectionTitle, StatusChip } from '@/components/app-ui';
 import { Timeline } from '@/components/Timeline';
-import { colors, spacing, typography } from '@/constants/theme';
+import { TrustScore } from '@/components/TrustScore';
+import { colors, typography } from '@/constants/theme';
 import { getTraceability } from '@/services/api';
 import { type AwareClass } from '@/types/domain';
 
@@ -32,18 +32,19 @@ export default function TraceabilityScreen() {
 
   if (!trace) {
     return (
-      <Screen>
-        <PageHeader title="Chargement..." />
+      <Screen variant="warm">
+        <PageHeader title="Chargement…" />
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen variant="warm">
       <PageHeader
-        eyebrow="VERIFICATION PUBLIQUE"
-        subtitle="Vue filtree: aucun nom veterinaire, dosage exact ou adresse wallet."
-        title="Tracabilite"
+        role={{ label: 'Consommateur', accent: colors.role.consumer }}
+        breadcrumb="Vérification publique"
+        subtitle="Vue filtrée : aucun nom vétérinaire, dosage exact ou adresse wallet."
+        title="Traçabilité"
       />
 
       <Card tone="success">

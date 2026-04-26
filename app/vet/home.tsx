@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { AWaReBadge } from '@/components/AWaReBadge';
-import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
 import { AIAssistantCard } from '@/components/AIAssistantCard';
+import { AWaReBadge } from '@/components/AWaReBadge';
 import { Timeline } from '@/components/Timeline';
+import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
 import { colors, typography } from '@/constants/theme';
 import { prescriptions } from '@/services/mockData';
 import { useAuthStore } from '@/store/authStore';
@@ -20,15 +20,26 @@ export default function VetHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="VETERINAIRE"
-        subtitle="Prescriptions actives, delais de retrait et aide IA locale."
-        title="Tableau de bord"
+        role={{ label: 'Vétérinaire', accent: colors.role.vet }}
+        breadcrumb="Tableau de bord"
+        subtitle="Prescriptions actives, délais de retrait et aide IA locale."
+        title="Bonjour, Dr. Ben Ali"
       />
 
       <Row>
-        <Stat label="Prescriptions" tone="warning" value="8" />
+        <Stat
+          label="Prescriptions"
+          tone="warning"
+          value="8"
+          delta={{ direction: 'up', value: '+3', label: '7j' }}
+        />
         <Stat label="Fermes suivies" tone="success" value="17" />
-        <Stat label="Doses restantes" tone="info" value="320" />
+        <Stat
+          label="Suggestions IA"
+          tone="info"
+          value="42"
+          delta={{ direction: 'up', value: '+15%', label: 'adoption' }}
+        />
       </Row>
 
       <Button onPress={() => router.push('/vet/new-prescription')}>

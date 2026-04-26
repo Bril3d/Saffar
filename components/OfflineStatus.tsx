@@ -2,9 +2,13 @@ import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii, spacing, typography } from '@/constants/theme';
+import { colors, radii, spacing, typography, withAlpha } from '@/constants/theme';
 import { getQueueLength } from '@/services/offlineQueue';
 
+/**
+ * Slim banner that appears when offline or when offline queue has pending items.
+ * Contains the exact text "actions en attente" (contract with component tests).
+ */
 export function OfflineStatus() {
   const [online, setOnline] = useState(true);
   const [queueLength, setQueueLength] = useState(0);
@@ -13,21 +17,28 @@ export function OfflineStatus() {
     let mounted = true;
 
     const refresh = async () => {
-      const length = await getQueueLength();
-      if (mounted) {
-        setQueueLength(length);
+      try {
+        const length = await getQueueLength();
+        if (mounted) setQueueLength(length);
+      } catch {
+        // Queue lookup failed; keep banner calm.
       }
     };
 
     refresh();
-    const unsubscribe = NetInfo.addEventListener((state) => {
+
+    // NetInfo.addEventListener may return undefined in certain jest setups —
+    // guard the cleanup so unmount never throws.
+    const maybeUnsub = NetInfo.addEventListener?.((state) => {
       setOnline(Boolean(state.isConnected && state.isInternetReachable !== false));
       refresh();
     });
 
     return () => {
       mounted = false;
-      unsubscribe();
+      if (typeof maybeUnsub === 'function') {
+        maybeUnsub();
+      }
     };
   }, []);
 
@@ -36,12 +47,16 @@ export function OfflineStatus() {
   }
 
   const accent = online ? colors.status.success : colors.status.warning;
+  const headline = online
+    ? 'Synchronisation en cours'
+    : 'Hors ligne';
+  const tail = `${queueLength} actions en attente`;
 
   return (
-    <View style={[styles.bar, { borderColor: `${accent}25` }]}>
+    <View style={[styles.bar, { borderColor: withAlpha(accent, 0.35), backgroundColor: withAlpha(accent, 0.12) }]}>
       <View style={[styles.dot, { backgroundColor: accent }]} />
       <Text style={[styles.text, { color: accent }]}>
-        {online ? 'Synchronisation prete' : 'Hors connexion'} — {queueLength} en attente
+        {headline} — {tail}
       </Text>
     </View>
   );
@@ -50,8 +65,7 @@ export function OfflineStatus() {
 const styles = StyleSheet.create({
   bar: {
     alignItems: 'center',
-    backgroundColor: colors.bg.secondary,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.sm,
@@ -60,8 +74,8 @@ const styles = StyleSheet.create({
   },
   dot: {
     borderRadius: radii.full,
-    height: 7,
-    width: 7,
+    height: 8,
+    width: 8,
   },
   text: {
     ...typography.caption,

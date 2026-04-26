@@ -1,21 +1,26 @@
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-  type ViewStyle,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+    type StyleProp,
+    type TextInputProps,
+    type TextStyle,
+    type ViewStyle
 } from 'react-native';
 
-import { colors, radii, spacing, typography } from '@/constants/theme';
+import { colors, elevation, radii, spacing, tokens, typography, withAlpha } from '@/constants/theme';
 
-// ── Types ──
+// ── Types ──────────────────────────────────────────────────────────────────
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-type ToneKey = 'default' | 'success' | 'warning' | 'danger' | 'info';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'cta-large';
+type CardVariant = 'default' | 'elevated' | 'tinted';
+type ToneKey = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'brand';
 
 type ButtonProps = {
   children: string;
@@ -23,167 +28,429 @@ type ButtonProps = {
   onPress?: () => void;
   variant?: ButtonVariant;
   compact?: boolean;
+  trailingArrow?: boolean;
+  leading?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 };
 
 type CardProps = {
   children: ReactNode;
+  /**
+   * @deprecated use `variant="tinted"` + `tone`
+   * (kept for back-compat with existing screens)
+   */
   tone?: ToneKey;
-  style?: ViewStyle;
+  variant?: CardVariant;
+  accent?: ToneKey;
+  style?: StyleProp<ViewStyle>;
 };
 
 type TextFieldProps = TextInputProps & {
   label: string;
   hint?: string;
+  error?: string;
+  trailing?: ReactNode;
 };
 
-// ── Tone Mapping ──
+// ── Tone mapping ───────────────────────────────────────────────────────────
 
-const TONE_ACCENTS: Record<ToneKey, string> = {
-  default: colors.border.default,
+const TONE_COLORS: Record<ToneKey, string> = {
+  default: colors.border.subtle,
   success: colors.status.success,
   warning: colors.status.warning,
   danger: colors.status.danger,
   info: colors.status.info,
+  brand: colors.accent.primary,
 };
 
-// ── Layout ──
+const TONE_BG: Record<ToneKey, string> = {
+  default: colors.bg.secondary,
+  success: colors.status.successBg,
+  warning: colors.status.warningBg,
+  danger: colors.status.dangerBg,
+  info: colors.status.infoBg,
+  brand: colors.accent.primaryMuted,
+};
 
-export function Screen({ children }: { children: ReactNode }) {
+// ── Screen ─────────────────────────────────────────────────────────────────
+
+export function Screen({
+  children,
+  variant = 'default',
+  contentContainerStyle,
+}: {
+  children: ReactNode;
+  variant?: 'default' | 'warm';
+  contentContainerStyle?: StyleProp<ViewStyle>;
+}) {
+  const bg = variant === 'warm' ? colors.bg.canvasWarm : colors.bg.primary;
   return (
     <ScrollView
-      contentContainerStyle={styles.screen}
+      contentContainerStyle={[
+        styles.screen,
+        { backgroundColor: bg },
+        contentContainerStyle,
+      ]}
+      contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}>
+      showsVerticalScrollIndicator={false}
+      style={{ backgroundColor: bg }}>
       {children}
     </ScrollView>
   );
 }
 
-// ── Typography ──
+// ── Typography ─────────────────────────────────────────────────────────────
 
 export function PageHeader({
   eyebrow,
   title,
   subtitle,
+  role,
+  breadcrumb,
+  right,
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  role?: { label: string; accent: string };
+  breadcrumb?: string;
+  right?: ReactNode;
 }) {
   return (
     <View style={styles.header}>
-      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.headerTitle}>{title}</Text>
+      <View style={styles.headerTopRow}>
+        <View style={styles.headerEyebrow}>
+          {role ? (
+            <View style={[styles.roleChip, { borderColor: withAlpha(role.accent, 0.35), backgroundColor: withAlpha(role.accent, 0.1) }]}>
+              <View style={[styles.roleChipDot, { backgroundColor: role.accent }]} />
+              <Text style={[styles.roleChipLabel, { color: role.accent }]}>{role.label}</Text>
+            </View>
+          ) : null}
+          {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+          {breadcrumb ? <Text style={styles.breadcrumb}>{`  •  ${breadcrumb}`}</Text> : null}
+        </View>
+        {right}
+      </View>
+      <Text style={styles.headerTitle} selectable>
+        {title}
+      </Text>
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
 
-export function SectionTitle({ children }: { children: string }) {
-  return <Text style={styles.sectionTitle}>{children}</Text>;
+export function SectionTitle({
+  children,
+  action,
+}: {
+  children: string;
+  action?: { label: string; onPress: () => void };
+}) {
+  return (
+    <View style={styles.sectionTitleRow}>
+      <Text style={styles.sectionTitle}>{children}</Text>
+      {action ? (
+        <Pressable onPress={action.onPress} hitSlop={8}>
+          <Text style={styles.sectionAction}>{action.label} →</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
 }
 
-// ── Card ──
+// ── Card ───────────────────────────────────────────────────────────────────
 
-export function Card({ children, tone = 'default', style }: CardProps) {
-  const borderColor = tone === 'default' ? colors.border.default : TONE_ACCENTS[tone];
+export function Card({ children, tone = 'default', variant, accent, style }: CardProps) {
+  // Resolve variant. Back-compat: if `tone` is provided and not 'default',
+  // we render as tinted. Otherwise honor the explicit variant (default).
+  const resolvedVariant: CardVariant =
+    variant ?? (tone !== 'default' ? 'tinted' : 'default');
+  const effectiveTone = accent ?? tone;
+  const toneKey: ToneKey = effectiveTone === 'default' ? 'brand' : effectiveTone;
+  const toneColor = TONE_COLORS[toneKey];
+  const isTinted = resolvedVariant === 'tinted' && effectiveTone !== 'default';
+  const isElevated = resolvedVariant === 'elevated';
+
+  const cardStyle: ViewStyle = {
+    backgroundColor: isTinted ? TONE_BG[toneKey] : colors.bg.secondary,
+    borderColor: isTinted ? withAlpha(toneColor, 0.35) : colors.border.subtle,
+  };
+
+  const webShadow = Platform.OS === 'web' && isElevated
+    ? { boxShadow: elevation.brandGlowSoft }
+    : null;
+
   return (
-    <View style={[styles.card, { borderColor }, style]}>
+    <View
+      style={[
+        styles.card,
+        cardStyle,
+        isElevated && styles.cardElevated,
+        webShadow as ViewStyle,
+        style,
+      ]}>
+      {isTinted ? (
+        <View style={[styles.cardAccentBar, { backgroundColor: toneColor }]} />
+      ) : null}
       {children}
     </View>
   );
 }
 
-// ── Row / Grid ──
+// ── Row / Grid ─────────────────────────────────────────────────────────────
 
-export function Row({ children, gap }: { children: ReactNode; gap?: number }) {
+export function Row({
+  children,
+  gap,
+  align,
+  justify,
+  wrap = true,
+}: {
+  children: ReactNode;
+  gap?: number;
+  align?: 'flex-start' | 'center' | 'flex-end' | 'baseline' | 'stretch';
+  justify?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';
+  wrap?: boolean;
+}) {
   return (
-    <View style={[styles.row, gap != null ? { gap } : undefined]}>
+    <View
+      style={[
+        styles.row,
+        { flexWrap: wrap ? 'wrap' : 'nowrap' },
+        gap != null ? { gap } : undefined,
+        align ? { alignItems: align } : undefined,
+        justify ? { justifyContent: justify } : undefined,
+      ]}>
       {children}
     </View>
   );
 }
 
-// ── Stat ──
+// ── Stat (with optional delta indicator) ───────────────────────────────────
 
 export function Stat({
   label,
   value,
   tone = 'default',
+  delta,
 }: {
   label: string;
   tone?: ToneKey;
   value: string;
+  delta?: { value: string; direction: 'up' | 'down' | 'flat'; label?: string };
 }) {
-  const accentColor = tone === 'default' ? colors.text.primary : TONE_ACCENTS[tone];
+  const effectiveTone = tone === 'default' ? 'brand' : tone;
+  const accentColor = TONE_COLORS[effectiveTone];
+
+  let deltaColor: string = colors.text.tertiary;
+  let deltaArrow = '→';
+  if (delta) {
+    if (delta.direction === 'up') {
+      deltaColor = colors.status.success;
+      deltaArrow = '↑';
+    } else if (delta.direction === 'down') {
+      deltaColor = colors.status.danger;
+      deltaArrow = '↓';
+    }
+  }
 
   return (
     <View style={styles.stat}>
-      <Text style={[styles.statValue, { color: accentColor }]}>{value}</Text>
+      <Text style={[styles.statValue, { color: accentColor as any }]} selectable>
+        {value}
+      </Text>
       <Text style={styles.statLabel}>{label}</Text>
+      {delta ? (
+        <Text style={[styles.statDelta, { color: deltaColor }]}>
+          {deltaArrow} {delta.value}
+          {delta.label ? ` ${delta.label}` : ''}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-// ── Buttons ──
+// ── Button ─────────────────────────────────────────────────────────────────
 
-const BUTTON_STYLES: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
-  primary: { bg: colors.accent.primary, text: colors.text.inverse },
-  secondary: { bg: 'transparent', text: colors.text.primary, border: colors.border.strong },
-  ghost: { bg: 'transparent', text: colors.text.secondary },
-  danger: { bg: colors.status.dangerBg, text: colors.status.danger, border: 'rgba(232,84,84,0.25)' },
+const BUTTON_STYLES: Record<ButtonVariant, { bg: string; text: string; border?: string; innerTop?: string }> = {
+  primary: {
+    bg: colors.accent.primary,
+    text: colors.text.primary,
+    innerTop: 'rgba(255,255,255,0.12)',
+  },
+  'cta-large': {
+    bg: colors.accent.primary,
+    text: colors.text.primary,
+    innerTop: 'rgba(255,255,255,0.14)',
+  },
+  secondary: {
+    bg: colors.bg.tertiary,
+    text: colors.text.primary,
+    border: colors.border.subtle,
+  },
+  ghost: {
+    bg: 'transparent',
+    text: colors.text.secondary,
+  },
+  danger: {
+    bg: colors.status.dangerBg,
+    text: colors.status.danger,
+    border: withAlpha(tokens.danger, 0.35),
+  },
 };
 
-export function Button({ children, disabled, onPress, variant = 'primary', compact }: ButtonProps) {
+export function Button({
+  children,
+  disabled,
+  onPress,
+  variant = 'primary',
+  compact,
+  trailingArrow,
+  leading,
+  style,
+}: ButtonProps) {
   const scheme = BUTTON_STYLES[variant];
+  const isCta = variant === 'cta-large';
+  const minHeight = isCta ? 56 : compact ? 40 : 48;
+
+  const handlePress = async () => {
+    if (disabled) return;
+    // Haptic on native. Dynamic import so web bundle stays clean.
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      try {
+        const Haptics = await import('expo-haptics');
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {
+        // ignore
+      }
+    }
+    onPress?.();
+  };
+
   return (
     <Pressable
+      accessibilityRole="button"
       disabled={disabled}
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [
         styles.button,
         {
           backgroundColor: scheme.bg,
           borderColor: scheme.border || 'transparent',
           borderWidth: scheme.border ? 1 : 0,
-          minHeight: compact ? 40 : 48,
+          minHeight,
+          paddingHorizontal: isCta ? spacing.xl : spacing.lg,
+          borderRadius: radii.md,
+          alignSelf: isCta ? 'stretch' : 'auto',
         },
+        isCta && Platform.OS === 'web' ? { boxShadow: elevation.brandGlowSoft } as ViewStyle : null,
         disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
+        pressed && !disabled ? {
+          backgroundColor: variant === 'primary' || variant === 'cta-large'
+            ? tokens.brandPrimaryPressed
+            : scheme.bg,
+          ...(Platform.OS === 'web' ? ({ boxShadow: elevation.buttonPressed } as ViewStyle) : {}),
+        } : null,
+        style,
       ]}>
-      <Text style={[styles.buttonText, { color: scheme.text }]}>{children}</Text>
+      {scheme.innerTop && Platform.OS === 'web' ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFillObject,
+            { borderRadius: radii.md, borderTopWidth: 1, borderColor: scheme.innerTop },
+          ]}
+        />
+      ) : null}
+      {leading ? <View style={{ marginRight: spacing.sm }}>{leading}</View> : null}
+      <Text
+        style={[
+          styles.buttonText,
+          { color: scheme.text, fontSize: isCta ? 16 : 15 },
+        ]}>
+        {children}
+      </Text>
+      {trailingArrow || isCta ? (
+        <Text style={[styles.buttonText, styles.buttonArrow, { color: scheme.text }]}>
+          {'  →'}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
 
 /** @deprecated Use Button with variant="primary" instead */
 export function PrimaryButton({ children, disabled, onPress }: Omit<ButtonProps, 'variant'>) {
-  return <Button variant="primary" disabled={disabled} onPress={onPress}>{children}</Button>;
+  return (
+    <Button variant="primary" disabled={disabled} onPress={onPress}>
+      {children}
+    </Button>
+  );
 }
 
 /** @deprecated Use Button with variant="secondary" instead */
 export function SecondaryButton({ children, disabled, onPress }: Omit<ButtonProps, 'variant'>) {
-  return <Button variant="secondary" disabled={disabled} onPress={onPress}>{children}</Button>;
+  return (
+    <Button variant="secondary" disabled={disabled} onPress={onPress}>
+      {children}
+    </Button>
+  );
 }
 
-// ── Text Field ──
+// ── TextField ──────────────────────────────────────────────────────────────
 
-export function TextField({ label, hint, style, ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  hint,
+  error,
+  style,
+  trailing,
+  ...props
+}: TextFieldProps) {
+  const [focused, setFocused] = useState(false);
+  const borderColor = error
+    ? colors.status.danger
+    : focused
+      ? colors.accent.primary
+      : colors.border.subtle;
+  const webFocusShadow =
+    Platform.OS === 'web' && focused && !error
+      ? ({ boxShadow: elevation.focusRing } as ViewStyle)
+      : Platform.OS === 'web' && error
+        ? ({ boxShadow: elevation.focusRingDanger } as ViewStyle)
+        : null;
+
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        placeholderTextColor={colors.text.tertiary}
-        style={[styles.input, style]}
-        selectionColor={colors.accent.primary}
-        {...props}
-      />
-      {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+      <View style={[styles.inputWell, { borderColor }, webFocusShadow]}>
+        <TextInput
+          placeholderTextColor={colors.text.tertiary}
+          style={[styles.input, style]}
+          selectionColor={colors.accent.primary}
+          onFocus={(e) => {
+            setFocused(true);
+            props.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            props.onBlur?.(e);
+          }}
+          {...props}
+        />
+        {trailing ? <View style={styles.inputTrailing}>{trailing}</View> : null}
+      </View>
+      {error ? (
+        <Text style={[styles.fieldHint, { color: colors.status.danger }]}>{error}</Text>
+      ) : hint ? (
+        <Text style={styles.fieldHint}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
 
-// ── Segmented Control ──
+// ── SegmentedControl ───────────────────────────────────────────────────────
 
 export function SegmentedControl<TValue extends string>({
   options,
@@ -213,7 +480,7 @@ export function SegmentedControl<TValue extends string>({
   );
 }
 
-// ── Status Chip ──
+// ── StatusChip ─────────────────────────────────────────────────────────────
 
 export function StatusChip({
   label,
@@ -222,13 +489,14 @@ export function StatusChip({
   label: string;
   tone?: ToneKey;
 }) {
-  const accent = TONE_ACCENTS[tone];
+  const accent = TONE_COLORS[tone];
   const bgMap: Record<ToneKey, string> = {
-    default: colors.bg.tertiary,
+    default: colors.bg.elevated,
     success: colors.status.successBg,
     warning: colors.status.warningBg,
     danger: colors.status.dangerBg,
     info: colors.status.infoBg,
+    brand: colors.accent.primaryMuted,
   };
   return (
     <View style={[styles.chip, { backgroundColor: bgMap[tone] }]}>
@@ -238,164 +506,275 @@ export function StatusChip({
   );
 }
 
-// ── Divider ──
+// ── Divider ────────────────────────────────────────────────────────────────
 
 export function Divider() {
   return <View style={styles.divider} />;
 }
 
-// ── Badge (generic) ──
+// ── Badge ──────────────────────────────────────────────────────────────────
 
 export function Badge({
   label,
   color: badgeColor,
   bg,
+  mono = false,
 }: {
   label: string;
   color: string;
   bg: string;
+  mono?: boolean;
 }) {
   return (
-    <View style={[styles.badge, { backgroundColor: bg, borderColor: `${badgeColor}20` }]}>
-      <Text style={[styles.badgeText, { color: badgeColor }]}>{label}</Text>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: bg, borderColor: withAlpha(badgeColor, 0.35) },
+      ]}>
+      <Text
+        style={[
+          styles.badgeText,
+          { color: badgeColor },
+          mono ? { fontFamily: Platform.OS === 'web' ? '"JetBrains Mono", monospace' : 'Menlo' } : null,
+        ]}>
+        {label}
+      </Text>
     </View>
   );
 }
 
-// ── Styles ──
+// ── EmptyState ─────────────────────────────────────────────────────────────
+
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  action?: { label: string; onPress: () => void };
+}) {
+  return (
+    <View style={styles.empty}>
+      {icon ? <View style={styles.emptyIcon}>{icon}</View> : null}
+      <Text style={styles.emptyTitle}>{title}</Text>
+      {description ? <Text style={styles.emptyDescription}>{description}</Text> : null}
+      {action ? (
+        <View style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}>
+          <Button variant="secondary" onPress={action.onPress}>
+            {action.label}
+          </Button>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// ── RoleChip (small) ───────────────────────────────────────────────────────
+
+export function RoleChip({ label, accent }: { label: string; accent: string }) {
+  return (
+    <View
+      style={[
+        styles.roleChip,
+        {
+          borderColor: withAlpha(accent, 0.35),
+          backgroundColor: withAlpha(accent, 0.1),
+        },
+      ]}>
+      <View style={[styles.roleChipDot, { backgroundColor: accent }]} />
+      <Text style={[styles.roleChipLabel, { color: accent }]}>{label}</Text>
+    </View>
+  );
+}
+
+// ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  // Layout
   screen: {
     backgroundColor: colors.bg.primary,
     gap: spacing.xl,
     padding: spacing.xl,
-    paddingBottom: spacing.xxxl + 20,
+    paddingBottom: 56 + 24,
     minHeight: '100%',
   },
 
-  // Header
   header: {
     gap: spacing.sm,
-    paddingTop: spacing.sm,
+    paddingTop: spacing['3xl'],
+    paddingBottom: spacing['2xl'],
+  },
+  headerTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  headerEyebrow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   eyebrow: {
     ...typography.overline,
     color: colors.accent.primary,
+  },
+  breadcrumb: {
+    ...typography.overline,
+    color: colors.text.tertiary,
   },
   headerTitle: {
     ...typography.display,
   },
   headerSubtitle: {
     ...typography.body,
+    color: colors.text.secondary,
   },
 
-  // Section
-  sectionTitle: {
-    ...typography.section,
+  sectionTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingTop: spacing.xs,
   },
+  sectionTitle: {
+    ...typography.h3,
+  },
+  sectionAction: {
+    ...typography.caption,
+    color: colors.accent.primary,
+    fontWeight: '600',
+  },
 
-  // Card
   card: {
     backgroundColor: colors.bg.secondary,
     borderRadius: radii.lg,
     borderWidth: 1,
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.xl,
+    overflow: 'hidden',
+    position: 'relative',
+    ...(Platform.OS === 'web' ? ({ boxShadow: elevation.cardInset } as ViewStyle) : {}),
+  },
+  cardElevated: {
+    backgroundColor: colors.bg.secondary,
+    borderColor: withAlpha(tokens.brandPrimary, 0.35),
+  },
+  cardAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
   },
 
-  // Row
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
 
-  // Stat
   stat: {
     backgroundColor: colors.bg.secondary,
-    borderColor: colors.border.default,
+    borderColor: colors.border.subtle,
     borderRadius: radii.md,
     borderWidth: 1,
     flexBasis: '30%',
     flexGrow: 1,
     gap: spacing.xs,
-    minWidth: 96,
-    padding: spacing.md,
+    minWidth: 100,
+    padding: spacing.lg,
+    ...(Platform.OS === 'web' ? ({ boxShadow: elevation.cardInset } as ViewStyle) : {}),
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    fontSize: 28,
+    fontWeight: '600',
+    letterSpacing: -0.56,
+    fontVariant: ['tabular-nums'],
   },
   statLabel: {
-    ...typography.caption,
+    ...typography.overline,
+  },
+  statDelta: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+    marginTop: 2,
   },
 
-  // Button
   button: {
     alignItems: 'center',
-    borderRadius: radii.md,
+    flexDirection: 'row',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    borderCurve: 'continuous',
   },
   buttonText: {
     fontSize: 15,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
+  },
+  buttonArrow: {
+    marginLeft: spacing.xs,
   },
   disabled: {
-    opacity: 0.4,
-  },
-  pressed: {
-    opacity: 0.78,
+    opacity: 0.42,
   },
 
-  // Field
   field: {
     gap: spacing.sm,
   },
   fieldLabel: {
-    ...typography.caption,
+    ...typography.overline,
     color: colors.text.secondary,
-    fontWeight: '600',
   },
   fieldHint: {
     ...typography.caption,
-    color: colors.text.tertiary,
   },
-  input: {
-    backgroundColor: colors.bg.input,
-    borderColor: colors.border.default,
+  inputWell: {
+    backgroundColor: colors.bg.tertiary,
+    borderColor: colors.border.subtle,
     borderRadius: radii.md,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderCurve: 'continuous',
+  },
+  input: {
     color: colors.text.primary,
     fontSize: 15,
+    flex: 1,
     minHeight: 48,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  } as TextStyle,
+  inputTrailing: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
   },
 
-  // Segmented
   segmented: {
+    backgroundColor: colors.bg.tertiary,
+    borderColor: colors.border.subtle,
+    borderRadius: radii.full,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: 0,
+    padding: 4,
   },
   segment: {
     alignItems: 'center',
-    backgroundColor: colors.bg.tertiary,
-    borderColor: colors.border.default,
-    borderRadius: radii.md,
-    borderWidth: 1,
+    borderRadius: radii.full,
     flexGrow: 1,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 36,
     paddingHorizontal: spacing.md,
   },
   segmentSelected: {
-    backgroundColor: colors.accent.primaryMuted,
-    borderColor: colors.accent.primary,
+    backgroundColor: colors.bg.secondary,
+    borderColor: colors.border.subtle,
+    borderWidth: 1,
   },
   segmentText: {
     ...typography.caption,
@@ -403,39 +782,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   segmentTextSelected: {
-    color: colors.accent.primary,
+    color: colors.text.primary,
   },
 
-  // Chip
   chip: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderRadius: radii.full,
+    borderRadius: radii.sm,
     flexDirection: 'row',
     gap: spacing.xs + 2,
     paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs + 1,
+    paddingVertical: spacing.xs + 2,
   },
   chipDot: {
     borderRadius: radii.full,
-    height: 6,
-    width: 6,
+    height: 8,
+    width: 8,
   },
   chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
 
-  // Divider
   divider: {
-    backgroundColor: colors.border.default,
+    backgroundColor: colors.border.subtle,
     height: 1,
     width: '100%',
   },
 
-  // Badge
   badge: {
     alignSelf: 'flex-start',
     borderRadius: radii.sm,
@@ -447,6 +823,54 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+
+  empty: {
+    alignItems: 'center',
+    backgroundColor: colors.bg.secondary,
+    borderColor: colors.border.subtle,
+    borderRadius: radii.lg,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing['4xl'],
+  },
+  emptyIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    opacity: 0.8,
+  },
+  emptyTitle: {
+    ...typography.section,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    ...typography.body,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+  },
+
+  roleChip: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: radii.full,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+  },
+  roleChipDot: {
+    borderRadius: radii.full,
+    height: 6,
+    width: 6,
+  },
+  roleChipLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.1,
     textTransform: 'uppercase',
   },
 });

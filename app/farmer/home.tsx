@@ -1,11 +1,10 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { AWaReBadge } from '@/components/AWaReBadge';
 import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
+import { AWaReBadge } from '@/components/AWaReBadge';
 import { OfflineStatus } from '@/components/OfflineStatus';
-import { colors, spacing, typography } from '@/constants/theme';
-import { lotTone } from '@/services/api';
+import { colors, typography } from '@/constants/theme';
 import { lots } from '@/services/mockData';
 import { useAuthStore } from '@/store/authStore';
 
@@ -21,9 +20,10 @@ export default function FarmerHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="ELEVEUR"
+        role={{ label: 'Éleveur', accent: colors.role.farmer }}
+        breadcrumb="Tableau de bord"
         subtitle="Administration offline-first, lots et marketplace direct."
-        title="Tableau de bord"
+        title="Bonjour — Élevage El Amri"
       />
 
       <OfflineStatus />
@@ -38,9 +38,24 @@ export default function FarmerHomeScreen() {
       ) : null}
 
       <Row>
-        <Stat label="Lots actifs" tone="success" value="3" />
-        <Stat label="Commandes" tone="info" value="7" />
-        <Stat label="Revenu net" tone="warning" value="486 TND" />
+        <Stat
+          label="Lots actifs"
+          tone="success"
+          value="3"
+          delta={{ direction: 'up', value: '+1', label: 'ce mois' }}
+        />
+        <Stat
+          label="Commandes"
+          tone="info"
+          value="7"
+          delta={{ direction: 'up', value: '+2', label: '7j' }}
+        />
+        <Stat
+          label="Revenu net"
+          tone="warning"
+          value="486 DT"
+          delta={{ direction: 'up', value: '+12%', label: 'vs. mois dernier' }}
+        />
       </Row>
 
       <Row>
