@@ -72,10 +72,20 @@ const HARDHAT_KEYS = [
     '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a',
 ];
 
+const _managedSigners = new Map();
+
 function getSignerForAddress(address) {
     const idx = HARDHAT_ACCOUNTS.findIndex(a => a.toLowerCase() === address.toLowerCase());
     if (idx === -1) throw new Error(`[SDK] No private key for address ${address}`);
-    return new ethers.Wallet(HARDHAT_KEYS[idx], getProvider());
+    const key = HARDHAT_ACCOUNTS[idx].toLowerCase();
+    if (_managedSigners.has(key)) {
+        return _managedSigners.get(key);
+    }
+
+    const wallet = new ethers.Wallet(HARDHAT_KEYS[idx], getProvider());
+    const signer = new ethers.NonceManager(wallet);
+    _managedSigners.set(key, signer);
+    return signer;
 }
 
 // ====================================================

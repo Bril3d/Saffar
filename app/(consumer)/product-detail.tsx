@@ -3,16 +3,57 @@
  * Full product info with trust score, AWaRe badge, traceability CTA.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getProduct, getTraceability } from '@/services/api';
+import type { ProductResponse, TraceResponse } from '@/services/types';
 
 export default function ProductDetailScreen() {
+  const params = useLocalSearchParams<{ id: string }>();
+  const [product, setProduct] = React.useState<ProductResponse | null>(null);
+  const [trace, setTrace] = React.useState<TraceResponse | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!params.id) {
+      setLoading(false);
+      return;
+    }
+
+    getProduct(params.id)
+      .then(async (res) => {
+        setProduct(res.product);
+        if (res.product?.lot_id) {
+          try {
+            const traceData = await getTraceability(res.product.lot_id);
+            setTrace(traceData);
+          } catch {
+            setTrace(null);
+          }
+        }
+      })
+      .catch(() => {
+        setProduct(null);
+        setTrace(null);
+      })
+      .finally(() => setLoading(false));
+  }, [params.id]);
+
+  const trustScore = trace?.trustScore ?? Math.round((product?.avg_rating || 0) * 20) || 0;
+  const lastControl = trace?.prescriptions?.[trace.prescriptions.length - 1];
+
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {loading ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: 80 }} />
+        ) : !product ? (
+          <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 80 }}>Produit introuvable</Text>
+        ) : (
+          <>
         {/* Image placeholder */}
         <View style={s.imageBox}>
           <Text style={s.imageEmoji}>🐔</Text>
@@ -24,16 +65,16 @@ export default function ProductDetailScreen() {
           {/* Title & price */}
           <View style={s.titleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={s.title}>Poulet Fermier Bio</Text>
-              <Text style={s.farm}>Ferme El Baraka</Text>
+              <Text style={s.title}>{product.title}</Text>
+              <Text style={s.farm}>{product.farmer_name}</Text>
             </View>
-            <Text style={s.price}>9.500 TND</Text>
+            <Text style={s.price}>{product.price_per_unit.toFixed(3)} TND</Text>
           </View>
 
           {/* Trust Score */}
           <View style={s.trustCard}>
             <View style={s.trustLeft}>
-              <View style={s.trustCircle}><Text style={s.trustValue}>98</Text></View>
+              <View style={s.trustCircle}><Text style={s.trustValue}>{trustScore}</Text></View>
               <View>
                 <Text style={s.trustLabel}>Score de Confiance</Text>
                 <Text style={s.trustSub}>Basé sur la traçabilité blockchain</Text>
@@ -42,24 +83,27 @@ export default function ProductDetailScreen() {
           </View>
 
           {/* AWaRe Badge */}
-          <View style={s.awareBadge}>
-            <View style={[s.awareDot, { backgroundColor: Colors.aware.access }]} />
-            <Text style={[s.awareText, { color: Colors.aware.access }]}>WHO AWaRe: Access ✅</Text>
-            <Text style={s.awareDetail}>Antibiotiques à risque minimal</Text>
-          </View>
+          {lastControl && (
+            <View style={s.awareBadge}>
+              <View style={[s.awareDot, { backgroundColor: Colors.aware.access }]} />
+              <Text style={[s.awareText, { color: Colors.aware.access }]}>WHO AWaRe: {lastControl.awareClass}</Text>
+              <Text style={s.awareDetail}>{lastControl.antibiotic}</Text>
+            </View>
+          )}
 
           {/* Details */}
           <View style={s.detailCard}>
             <Text style={s.sectionTitle}>Informations</Text>
-            <View style={s.row}><Text style={s.lbl}>Lot</Text><Text style={s.val}>#1234</Text></View>
-            <View style={s.row}><Text style={s.lbl}>Lieu</Text><Text style={s.val}>Tunis, Manouba</Text></View>
-            <View style={s.row}><Text style={s.lbl}>Certifié le</Text><Text style={s.val}>20 Avr 2026</Text></View>
-            <View style={s.row}><Text style={s.lbl}>Retrait respecté</Text><Text style={[s.val, { color: Colors.status.certified }]}>✅ Oui (8/5 jours)</Text></View>
-            <View style={s.row}><Text style={s.lbl}>Dernier contrôle</Text><Text style={s.val}>Amoxicilline, J01CA04</Text></View>
+            <View style={s.row}><Text style={s.lbl}>Lot</Text><Text style={s.val}>{product.lot_id}</Text></View>
+            <View style={s.row}><Text style={s.lbl}>Lieu</Text><Text style={s.val}>{product.farmer_governorate || '-'}</Text></View>
+            <View style={s.row}><Text style={s.lbl}>Certifié le</Text><Text style={s.val}>{product.lot_certified_at ? new Date(product.lot_certified_at).toLocaleDateString('fr-FR') : 'Trace vet-farmer'}</Text></View>
+            <View style={s.row}><Text style={s.lbl}>Retrait respecté</Text><Text style={[s.val, { color: trace?.lotDetails?.inWithdrawal ? Colors.status.withdrawal : Colors.status.certified }]}>{trace?.lotDetails?.inWithdrawal ? '⏳ En retrait' : '✅ Oui'}</Text></View>
+            <View style={s.row}><Text style={s.lbl}>Dernier contrôle</Text><Text style={s.val}>{lastControl ? `${lastControl.antibiotic}` : '-'}</Text></View>
+            <View style={s.row}><Text style={s.lbl}>Certificat</Text><Text style={s.hashVal}>{product.certificate_hash?.slice(0, 12)}...{product.certificate_hash?.slice(-8)}</Text></View>
           </View>
 
           {/* Actions */}
-          <TouchableOpacity style={s.traceBtn} onPress={() => router.push('/(consumer)/traceability')} activeOpacity={0.85}>
+          <TouchableOpacity style={s.traceBtn} onPress={() => router.push({ pathname: '/(consumer)/traceability', params: { lotId: product.lot_id } } as any)} activeOpacity={0.85}>
             <Text style={s.traceBtnIcon}>🔗</Text>
             <Text style={s.traceBtnText}>Voir la traçabilité complète</Text>
           </TouchableOpacity>
@@ -68,6 +112,8 @@ export default function ProductDetailScreen() {
             <Text style={s.orderBtnText}>🛒 Ajouter au panier</Text>
           </TouchableOpacity>
         </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -100,6 +146,7 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
   lbl: { fontSize: 13, color: Colors.onSurfaceVariant },
   val: { fontSize: 14, fontWeight: '700', color: Colors.onSurface },
+  hashVal: { fontSize: 12, fontWeight: '700', color: Colors.primary, maxWidth: '55%' },
   traceBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.full, paddingVertical: 16, marginBottom: Spacing.md },
   traceBtnIcon: { fontSize: 16 },
   traceBtnText: { fontSize: 15, fontWeight: '600', color: Colors.primary },

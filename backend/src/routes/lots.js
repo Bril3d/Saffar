@@ -83,6 +83,19 @@ router.get('/:lotId/trace', optionalAuth, async (req, res, next) => {
         ).all(req.params.lotId);
 
         const cert = db.prepare('SELECT * FROM lot_certifications WHERE lot_id = ?').get(req.params.lotId);
+        const lotSummary = db.prepare(`
+            SELECT
+                COUNT(*) as total_treatments,
+                SUM(CASE WHEN p.administered = 1 THEN 1 ELSE 0 END) as administered_treatments,
+                COUNT(DISTINCT p.vet_id) as distinct_vets,
+                COUNT(DISTINCT p.farmer_id) as distinct_farmers,
+                MAX(p.withdrawal_end) as latest_withdrawal_end
+            FROM prescriptions_offchain p
+            WHERE p.animal_lot_id = ?
+        `).get(req.params.lotId);
+
+        const latestWithdrawalEnd = lotSummary?.latest_withdrawal_end || null;
+        const activeWithdrawal = latestWithdrawalEnd ? new Date(latestWithdrawalEnd).getTime() > Date.now() : false;
 
         // PRIVACY FILTER: strip PII for public access
         const safePrescriptions = prescriptionsOffchain.map(p => ({
@@ -98,6 +111,7 @@ router.get('/:lotId/trace', optionalAuth, async (req, res, next) => {
         let trustScore = 50; // base
         if (prescriptionsOffchain.length > 0) trustScore += 10;
         if (prescriptionsOffchain.every(p => p.administered)) trustScore += 15;
+        if (!activeWithdrawal && prescriptionsOffchain.length > 0) trustScore += 10;
         if (cert) trustScore += 25;
         trustScore = Math.min(trustScore, 100);
 
@@ -111,11 +125,23 @@ router.get('/:lotId/trace', optionalAuth, async (req, res, next) => {
 
         res.json(success({
             lotId: req.params.lotId,
+            lotDetails: {
+                totalTreatments: Number(lotSummary?.total_treatments || 0),
+                administeredTreatments: Number(lotSummary?.administered_treatments || 0),
+                latestWithdrawalEnd,
+                inWithdrawal: activeWithdrawal
+            },
+            farmerVetTraceability: {
+                distinctVeterinarians: Number(lotSummary?.distinct_vets || 0),
+                distinctFarmers: Number(lotSummary?.distinct_farmers || 0),
+                linked: Number(lotSummary?.distinct_vets || 0) > 0 && Number(lotSummary?.distinct_farmers || 0) > 0
+            },
             prescriptions: safePrescriptions,
             certification: cert ? {
                 certified: true,
                 certificateHash: cert.certificate_hash,
                 certifiedAt: cert.certified_at,
+                txHash: cert.tx_hash,
                 onChainValid: onChainVerification?.valid ?? null
             } : { certified: false },
             trustScore,

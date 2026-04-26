@@ -2,34 +2,62 @@
  * Farmer — Publish Product Screen
  * Lists certified lots ready to list on marketplace.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
-import { publishProduct } from '@/services/api';
+import { getFarmerPublishableLots, publishProduct } from '@/services/api';
+import type { PublishableLotResponse } from '@/services/types';
+
+const categoryOptions = [
+  { label: 'Poulets', value: 'POULTRY_MEAT' },
+  { label: 'Oeufs', value: 'EGGS' },
+  { label: 'Bovins', value: 'RED_MEAT' },
+  { label: 'Ovins', value: 'RED_MEAT' },
+  { label: 'Lait', value: 'DAIRY' },
+  { label: 'Miel', value: 'HONEY' },
+] as const;
 
 export default function PublishProductScreen() {
-  const [lotId, setLotId] = useState('');
+  const [selectedLotId, setSelectedLotId] = useState('');
+  const [lots, setLots] = useState<PublishableLotResponse[]>([]);
+  const [lotsLoading, setLotsLoading] = useState(true);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Poulets');
+  const [category, setCategory] = useState<(typeof categoryOptions)[number]['value']>('POULTRY_MEAT');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [desc, setDesc] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const categories = ['Poulets', 'Oeufs', 'Bovins', 'Ovins', 'Lait'];
+  useEffect(() => {
+    getFarmerPublishableLots()
+      .then((res) => {
+        const eligibleLots = res.lots.filter((lot) => lot.eligibleForMarketplace);
+        setLots(eligibleLots);
+        if (eligibleLots.length > 0) {
+          setSelectedLotId((prev) => prev || eligibleLots[0].lotId);
+        }
+      })
+      .catch(() => setLots([]))
+      .finally(() => setLotsLoading(false));
+  }, []);
+
+  const selectedLot = lots.find((lot) => lot.lotId === selectedLotId);
+  const netPerUnit = Number(price || '0') * 0.9;
 
   const handlePublish = async () => {
-    if (!lotId.trim() || !title.trim() || !price.trim()) { setError('Lot ID, titre et prix requis'); return; }
+    if (!selectedLotId.trim()) { setError('Sélectionnez un lot éligible'); return; }
+    if (!title.trim() || !price.trim()) { setError('Titre et prix requis'); return; }
+    if (!Number(price) || Number(price) <= 0) { setError('Prix invalide'); return; }
     setError(''); setLoading(true);
     try {
       await publishProduct({
-        lotId: lotId.trim(), title: title.trim(), description: desc.trim(),
-        category, pricePerUnit: Number(price), unit: 'kg',
+        lotId: selectedLotId.trim(), title: title.trim(), description: desc.trim(),
+        category, pricePerUnit: Number(price), unit: 'KG',
         quantityAvailable: Number(quantity) || 1, deliveryOptions: 'PICKUP',
       });
       router.back();
@@ -48,17 +76,40 @@ export default function PublishProductScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <Text style={s.label}>Lot ID</Text>
-        <TextInput style={s.input} placeholder="ID du lot certifié" placeholderTextColor={Colors.outline} value={lotId} onChangeText={setLotId} />
+        <Text style={s.label}>Lot éligible</Text>
+        {lotsLoading ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.md }} />
+        ) : lots.length === 0 ? (
+          <Text style={s.emptyLotsText}>Aucun lot éligible disponible. Confirmez d'abord les traitements et la fin du délai de retrait.</Text>
+        ) : (
+          lots.map((lot) => (
+            <TouchableOpacity
+              key={lot.lotId}
+              style={[s.lotCard, selectedLotId === lot.lotId && s.lotCardActive]}
+              onPress={() => setSelectedLotId(lot.lotId)}
+              activeOpacity={0.85}
+            >
+              <View style={s.lotInfo}>
+                <Text style={s.lotName}>Lot {lot.lotId}</Text>
+                <Text style={s.lotMeta}>
+                  {lot.administeredTreatments}/{lot.totalTreatments} traitements confirmes
+                </Text>
+              </View>
+              <View style={s.certBadge}>
+                <Text style={s.certText}>{lot.certified ? 'On-chain' : 'Trace'}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
 
         <Text style={s.label}>Titre du produit</Text>
         <TextInput style={s.input} placeholder="Ex: Poulet Fermier Bio" placeholderTextColor={Colors.outline} value={title} onChangeText={setTitle} />
 
         <Text style={s.label}>Catégorie</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, marginBottom: Spacing.sm }}>
-          {categories.map(c => (
-            <TouchableOpacity key={c} style={[s.chip, category === c && s.chipActive]} onPress={() => setCategory(c)}>
-              <Text style={[s.chipText, category === c && s.chipTextActive]}>{c}</Text>
+          {categoryOptions.map((c) => (
+            <TouchableOpacity key={c.value} style={[s.chip, category === c.value && s.chipActive]} onPress={() => setCategory(c.value)}>
+              <Text style={[s.chipText, category === c.value && s.chipTextActive]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -72,6 +123,8 @@ export default function PublishProductScreen() {
         <Text style={s.label}>Quantité disponible (kg)</Text>
         <TextInput style={s.input} placeholder="Ex: 50" placeholderTextColor={Colors.outline} value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
 
+        <Text style={s.netPreview}>TND net par unite: {Number.isFinite(netPerUnit) ? netPerUnit.toFixed(3) : '0.000'}</Text>
+
         <Text style={s.label}>Description</Text>
         <TextInput style={[s.input, s.textarea]} placeholder="Décrivez votre produit..." placeholderTextColor={Colors.outline} value={desc} onChangeText={setDesc} multiline numberOfLines={4} textAlignVertical="top" />
 
@@ -82,7 +135,7 @@ export default function PublishProductScreen() {
 
         {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.sm }}>⚠️ {error}</Text>}
 
-        <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.7 }]} activeOpacity={0.85} onPress={handlePublish} disabled={loading}>
+        <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.7 }]} activeOpacity={0.85} onPress={handlePublish} disabled={loading || lotsLoading || lots.length === 0}>
           {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.submitText}>Publier sur le Marketplace</Text>}
         </TouchableOpacity>
       </ScrollView>
@@ -118,4 +171,6 @@ const s = StyleSheet.create({
   chipActive: { backgroundColor: Colors.primaryContainer },
   chipText: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant },
   chipTextActive: { color: Colors.onPrimary },
+  emptyLotsText: { fontSize: 13, color: Colors.onSurfaceVariant, marginBottom: Spacing.sm },
+  netPreview: { fontSize: 13, color: Colors.onSurfaceVariant, marginTop: Spacing.sm, fontWeight: '600' },
 });

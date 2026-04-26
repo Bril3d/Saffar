@@ -118,6 +118,17 @@ export interface CertifyLotResponse {
 
 export interface TraceResponse {
   lotId: string;
+  lotDetails?: {
+    totalTreatments: number;
+    administeredTreatments: number;
+    latestWithdrawalEnd: string | null;
+    inWithdrawal: boolean;
+  };
+  farmerVetTraceability?: {
+    distinctVeterinarians: number;
+    distinctFarmers: number;
+    linked: boolean;
+  };
   prescriptions: Array<{
     antibiotic: string;
     awareClass: string;
@@ -129,6 +140,7 @@ export interface TraceResponse {
     certified: boolean;
     certificateHash?: string;
     certifiedAt?: string;
+    txHash?: string;
     onChainValid?: boolean | null;
   };
   trustScore: number;
@@ -142,6 +154,13 @@ export interface ProductResponse {
   farmer_id: string;
   lot_id: string;
   certificate_hash: string;
+  lot_tx_hash?: string | null;
+  lot_certified_at?: string | null;
+  on_chain_certified?: number;
+  total_treatments?: number;
+  administered_treatments?: number;
+  latest_withdrawal_end?: string | null;
+  active_withdrawal_count?: number;
   title: string;
   description: string | null;
   category: string;
@@ -160,6 +179,17 @@ export interface ProductResponse {
 export interface CreateProductResponse {
   productId: string;
   status: string;
+  certificateHash: string;
+}
+
+export interface PublishableLotResponse {
+  lotId: string;
+  totalTreatments: number;
+  administeredTreatments: number;
+  latestWithdrawalEnd: string | null;
+  eligibleForMarketplace: boolean;
+  certified: boolean;
+  certificateHash: string | null;
 }
 
 /* ── Orders ──────────────────────────────────────── */

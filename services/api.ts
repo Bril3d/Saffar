@@ -16,6 +16,7 @@ import type {
   DrugSaleResponse,
   EligibilityResponse,
   OrderResponse,
+  PublishableLotResponse,
   PrescriptionResponse,
   ProductResponse,
   TraceResponse,
@@ -161,6 +162,11 @@ export async function publishProduct(input: {
   locationAddress?: string;
 }): Promise<CreateProductResponse> {
   const res = await apiClient.post('/api/products', input);
+  return unwrap(res);
+}
+
+export async function getFarmerPublishableLots(): Promise<{ lots: PublishableLotResponse[] }> {
+  const res = await apiClient.get('/api/products/farmer/publishable-lots');
   return unwrap(res);
 }
 

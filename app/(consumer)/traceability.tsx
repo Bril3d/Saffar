@@ -52,6 +52,16 @@ export default function TraceabilityScreen() {
               <View style={s.trustCircle}><Text style={s.trustText}>{trace.trustScore}</Text></View>
             </View>
 
+            <View style={s.infoCard}>
+              <Text style={s.infoTitle}>Traceabilite Vet <-> Farmer</Text>
+              <Text style={s.infoText}>Veterinaires lies: {trace.farmerVetTraceability?.distinctVeterinarians ?? 0}</Text>
+              <Text style={s.infoText}>Eleveurs lies: {trace.farmerVetTraceability?.distinctFarmers ?? 0}</Text>
+              <Text style={s.infoText}>Retrait actif: {trace.lotDetails?.inWithdrawal ? 'Oui' : 'Non'}</Text>
+              {!!trace.certification?.txHash && (
+                <Text style={s.infoHash}>Tx: {trace.certification.txHash.slice(0, 10)}...{trace.certification.txHash.slice(-6)}</Text>
+              )}
+            </View>
+
             <View style={s.chainBadge}>
               <View style={s.chainDot} />
               <Text style={s.chainText}>{trace.verifiedOnBlockchain ? 'Vérifié on-chain' : 'Non vérifié'}</Text>
@@ -89,6 +99,10 @@ const s = StyleSheet.create({
   productLot: { fontSize: 12, color: Colors.onSurfaceVariant, marginTop: 2 },
   trustCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
   trustText: { fontSize: 16, fontWeight: '900', color: '#fff' },
+  infoCard: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, padding: Spacing.md, marginBottom: Spacing.md },
+  infoTitle: { fontSize: 14, fontWeight: '700', color: Colors.onSurface, marginBottom: 6 },
+  infoText: { fontSize: 12, color: Colors.onSurfaceVariant, marginBottom: 2 },
+  infoHash: { fontSize: 11, color: Colors.primary, fontWeight: '700', marginTop: 4 },
   chainBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primaryFixed, paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radii.full, alignSelf: 'flex-start', marginBottom: Spacing.xl },
   chainDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
   chainText: { fontSize: 12, fontWeight: '700', color: Colors.primary },

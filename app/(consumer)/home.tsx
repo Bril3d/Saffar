@@ -14,9 +14,15 @@ import { getProducts } from '@/services/api';
 import type { ProductResponse } from '@/services/types';
 import { useAuth } from '@/store/authStore';
 
-const categories = ['Tous', 'Poulets', 'Oeufs', 'Bovins', 'Ovins', 'Lait'];
-
-const awareColors: Record<string, string> = { Access: Colors.aware.access, Watch: Colors.aware.watch, Reserve: Colors.aware.reserve };
+const categories = [
+  { label: 'Tous', value: undefined },
+  { label: 'Poulets', value: 'POULTRY_MEAT' },
+  { label: 'Oeufs', value: 'EGGS' },
+  { label: 'Bovins', value: 'RED_MEAT' },
+  { label: 'Ovins', value: 'RED_MEAT' },
+  { label: 'Lait', value: 'DAIRY' },
+  { label: 'Miel', value: 'HONEY' },
+] as const;
 
 function ProductCard({ product }: { product: ProductResponse }) {
   const trust = Math.round(product.avg_rating * 20) || 0;
@@ -31,6 +37,8 @@ function ProductCard({ product }: { product: ProductResponse }) {
         <View style={styles.productFooter}>
           <Text style={styles.productPrice}>{product.price_per_unit.toFixed(3)} TND</Text>
         </View>
+        <Text style={styles.productMeta}>Lot: {product.lot_id}</Text>
+        <Text style={styles.chainMeta}>{product.on_chain_certified ? 'Certifie on-chain' : 'Trace vet-farmer verifiee'}</Text>
         <TouchableOpacity style={styles.orderBtn} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(consumer)/product-detail', params: { id: product.id } } as any)}>
           <Text style={styles.orderBtnText}>Voir détails</Text>
         </TouchableOpacity>
@@ -46,8 +54,12 @@ export default function ConsumerHomeScreen() {
   const [selectedCat, setSelectedCat] = useState(0);
 
   useEffect(() => {
-    getProducts().then(r => setProducts(r.products || [])).catch(() => setProducts([])).finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    getProducts({ category: categories[selectedCat]?.value })
+      .then((r) => setProducts(r.products || []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  }, [selectedCat]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -71,7 +83,7 @@ export default function ConsumerHomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {categories.map((c, i) => (
             <TouchableOpacity key={i} style={[styles.chip, selectedCat === i && styles.chipActive]} onPress={() => setSelectedCat(i)}>
-              <Text style={[styles.chipText, selectedCat === i && styles.chipTextActive]}>{c}</Text>
+              <Text style={[styles.chipText, selectedCat === i && styles.chipTextActive]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -154,6 +166,8 @@ const styles = StyleSheet.create({
   productFarm: { fontSize: 11, color: Colors.onSurfaceVariant, marginTop: 2 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.sm },
   productPrice: { fontSize: 14, fontWeight: '800', color: Colors.primary },
+  productMeta: { fontSize: 11, color: Colors.onSurfaceVariant, marginTop: 4 },
+  chainMeta: { fontSize: 11, color: Colors.primary, marginTop: 2, fontWeight: '600' },
   awareMini: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radii.full },
   awareMiniText: { fontSize: 9, fontWeight: '700' },
   orderBtn: { backgroundColor: Colors.primaryContainer, borderRadius: Radii.full, paddingVertical: 8, alignItems: 'center', marginTop: Spacing.sm },
