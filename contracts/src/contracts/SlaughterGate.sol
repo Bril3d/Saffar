@@ -59,7 +59,9 @@ contract SlaughterGate {
             daysRemaining = 0;
         } else {
             eligible = false;
-            daysRemaining = (rx.withdrawalEnd - block.timestamp) / 1 days;
+            // Ceiling division: show minimum 1 day when any time remains
+            uint256 secondsLeft = rx.withdrawalEnd - block.timestamp;
+            daysRemaining = (secondsLeft + 1 days - 1) / 1 days;
         }
     }
 
