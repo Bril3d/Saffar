@@ -1,34 +1,40 @@
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
-import { colors } from '@/constants/theme';
+import { colors, lightColors } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
-
-const safarDark = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: colors.bg.primary,
-    card: colors.bg.secondary,
-    border: colors.border.default,
-    text: colors.text.primary,
-    primary: colors.accent.primary,
-    notification: colors.status.danger,
-  },
-};
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate);
+  const colorScheme = useColorScheme();
+  // Force light mode to apply the SaaS Light palette globally
+  const isDark = false; 
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
+  const activeColors = colors;
+
+  const safarTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: activeColors.bg.primary,
+      card: activeColors.bg.secondary,
+      border: activeColors.border.default,
+      text: activeColors.text.primary,
+      primary: activeColors.accent.primary,
+      notification: activeColors.status.danger,
+    },
+  };
+
   return (
-    <ThemeProvider value={safarDark}>
+    <ThemeProvider value={safarTheme}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -44,7 +50,8 @@ export default function RootLayout() {
         <Stack.Screen name="abattoir" />
         <Stack.Screen name="consumer" />
       </Stack>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }
+

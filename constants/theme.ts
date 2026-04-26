@@ -10,61 +10,121 @@
 
 // ── Raw tokens (flat, brief-aligned) ────────────────────────────────────────
 
-export const tokens = {
-  // Canvas / surfaces (warm-neutral dark)
-  canvas: '#0A0E12',
-  canvasWarm: '#0E1117', // consumer marketplace variant
-  surface1: '#131820',
-  surface2: '#1B2230',
-  surface3: '#242C3D',
-  borderSubtle: '#232A38',
-  borderStrong: '#2F3849',
+export const darkTokens = {
+  // Canvas / surfaces (SaaS Dark)
+  canvas: '#0B1120',      // Background principal
+  canvasWarm: '#111827',  // Secondary background
+  surface1: '#1F2937',    // Card background
+  surface2: '#374151',
+  surface3: '#4B5563',
+  borderSubtle: 'rgba(255,255,255,0.08)',
+  borderStrong: 'rgba(255,255,255,0.12)',
 
   // Text
-  textPrimary: '#F2F4F7',
-  textSecondary: '#9AA4B7',
-  textTertiary: '#5E687C',
-  textDisabled: '#3A4253',
-  textInverse: '#0A0E12',
+  textPrimary: '#F9FAFB',   // Main text
+  textSecondary: '#9CA3AF', // Soft text
+  textTertiary: '#6B7280',
+  textDisabled: '#4B5563',
+  textInverse: '#0B1120',
 
-  // Brand
-  brandPrimary: '#1F8A6F',
-  brandPrimaryHover: '#268F75',
-  brandPrimaryPressed: '#1A7560',
-  brandGlow: 'rgba(45,159,130,0.18)',
-  brandGlowSoft: 'rgba(45,159,130,0.08)',
-  brandSecondary: '#2D6FA6',
-  brandSecondaryGlow: 'rgba(45,111,166,0.18)',
+  // Brand (Premium Green)
+  brandPrimary: '#10B981',  // Primary accent
+  brandPrimaryHover: '#34D399', // Secondary accent
+  brandPrimaryPressed: '#059669',
+  brandGlow: 'rgba(16,185,129,0.15)',
+  brandGlowSoft: 'rgba(16,185,129,0.08)',
+  brandSecondary: '#3B82F6', // Keep blue for blockchain hash/links
+  brandSecondaryGlow: 'rgba(59,130,246,0.15)',
 
-  // Tunisian accent layer
-  accentTerracotta: '#C97042',
-  accentOchre: '#D89530',
-  accentSand: '#E8C893',
-  accentSaffron: '#E5A53B',
+  // Tunisian accent layer (Refined for SaaS)
+  accentTerracotta: '#F97316',
+  accentOchre: '#F59E0B',
+  accentSand: '#ECFDF5',    // Highlight text used here for extreme contrast
+  accentSaffron: '#EAB308',
 
   // Functional / status
-  success: '#3FB97D',
-  successBg: 'rgba(63,185,125,0.14)',
-  warning: '#E5A53B',
-  warningBg: 'rgba(229,165,59,0.14)',
-  danger: '#E55353',
-  dangerBg: 'rgba(229,83,83,0.14)',
-  info: '#5B8DEF',
-  infoBg: 'rgba(91,141,239,0.14)',
+  success: '#10B981',
+  successBg: 'rgba(16,185,129,0.1)',
+  warning: '#F59E0B',
+  warningBg: 'rgba(245,158,11,0.1)',
+  danger: '#EF4444',
+  dangerBg: 'rgba(239,68,68,0.1)',
+  info: '#3B82F6',
+  infoBg: 'rgba(59,130,246,0.1)',
 
-  // Role accents
-  rolePharmacy: '#2BAA7E',
-  roleVet: '#3B7AC7',
-  roleFarmer: '#D89530',
-  roleAbattoir: '#C04848',
-  roleConsumer: '#8E6BC9',
-  roleRegulator: '#6B8CB8',
+  // Role accents (Adjusted to blend with SaaS theme)
+  rolePharmacy: '#10B981',
+  roleVet: '#3B82F6',
+  roleFarmer: '#F59E0B',
+  roleAbattoir: '#EF4444',
+  roleConsumer: '#8B5CF6',
+  roleRegulator: '#6B7280',
 
   // AWaRe
-  awareAccess: '#3FB97D',
-  awareWatch: '#E5A53B',
-  awareReserve: '#E55353',
+  awareAccess: '#10B981',
+  awareWatch: '#F59E0B',
+  awareReserve: '#EF4444',
 } as const;
+
+export const lightTokens = {
+  // Canvas / surfaces
+  canvas: '#F7FAF7',      // Soft Background
+  canvasWarm: '#F2F4F3',  // Soft Gray (Inputs/Secondary)
+  surface1: '#FFFFFF',    // White Pure (Cards)
+  surface2: '#DDF4E7',    // Light Mint Green
+  surface3: '#F2F4F3',
+  borderSubtle: '#E3E8E5',
+  borderStrong: '#CBD5E1',
+
+  // Text
+  textPrimary: '#1C2B22',   // Text Dark
+  textSecondary: '#6B7A72', // Text Secondary
+  textTertiary: '#A0AEA5',  // Inactive icons
+  textDisabled: '#CBD5E1',
+  textInverse: '#FFFFFF',
+
+  // Brand (Pro Green & Gold)
+  brandPrimary: '#1F7A4D',  // Primary Green
+  brandPrimaryHover: '#3FAF6C', // Secondary Green
+  brandPrimaryPressed: '#175C3A',
+  brandGlow: 'rgba(31,122,77,0.15)',
+  brandGlowSoft: 'rgba(31,122,77,0.08)',
+  brandSecondary: '#D9B96E', // Gold Accent
+  brandSecondaryGlow: 'rgba(217,185,110,0.15)',
+
+  // Accents
+  accentTerracotta: '#EA580C',
+  accentOchre: '#D9B96E',   // Gold Accent
+  accentSand: '#F2F4F3',
+  accentSaffron: '#B45309',
+
+  // Functional / status
+  success: '#3FAF6C',
+  successBg: 'rgba(63,175,108,0.08)',
+  warning: '#FFD76A',       // Warning Weather Yellow
+  warningBg: 'rgba(255,215,106,0.15)',
+  danger: '#FF6B6B',        // Error Soft
+  dangerBg: 'rgba(255,107,107,0.08)',
+  info: '#DCEFFF',          // Sky Blue
+  infoBg: 'rgba(220,239,255,0.15)',
+
+  // Role accents
+  rolePharmacy: '#DDF4E7', // Mint
+  roleVet: '#DCEFFF',      // Sky Blue
+  roleFarmer: '#1F7A4D',   // Primary Green
+  roleAbattoir: '#D9B96E', // Gold
+  roleConsumer: '#F2F4F3', // Soft Gray
+  roleRegulator: '#1C2B22', // Text Dark
+
+  // AWaRe
+  awareAccess: '#3FAF6C',
+  awareWatch: '#D9B96E',
+  awareReserve: '#FF6B6B',
+} as const;
+
+
+export const tokens = darkTokens; // Default to dark for compatibility
+
 
 function withAlpha(hex: string, alpha: number) {
   const h = hex.replace('#', '');
@@ -77,93 +137,105 @@ function withAlpha(hex: string, alpha: number) {
 
 // ── Legacy nested shape (backward-compatible) ──────────────────────────────
 
-export const colors = {
-  bg: {
-    primary: tokens.canvas,
-    canvas: tokens.canvas,
-    canvasWarm: tokens.canvasWarm,
-    secondary: tokens.surface1,
-    tertiary: tokens.surface2,
-    elevated: tokens.surface3,
-    input: tokens.surface2,
-  },
+import { Appearance } from 'react-native';
 
-  border: {
-    default: tokens.borderSubtle,
-    subtle: tokens.borderSubtle,
-    strong: tokens.borderStrong,
-    focus: tokens.brandPrimary,
-  },
+export function generateColors(t: typeof darkTokens | typeof lightTokens) {
+  return {
+    bg: {
+      primary: t.canvas,
+      canvas: t.canvas,
+      canvasWarm: t.canvasWarm,
+      secondary: t.surface1,
+      tertiary: t.surface2,
+      elevated: t.surface3,
+      input: t.surface2,
+    },
 
-  text: {
-    primary: tokens.textPrimary,
-    secondary: tokens.textSecondary,
-    tertiary: tokens.textTertiary,
-    disabled: tokens.textDisabled,
-    inverse: tokens.textInverse,
-    link: tokens.brandSecondary,
-  },
+    border: {
+      default: t.borderSubtle,
+      subtle: t.borderSubtle,
+      strong: t.borderStrong,
+      focus: t.brandPrimary,
+    },
 
-  accent: {
-    primary: tokens.brandPrimary,
-    primaryHover: tokens.brandPrimaryHover,
-    primaryMuted: withAlpha(tokens.brandPrimary, 0.12),
-    primarySubtle: withAlpha(tokens.brandPrimary, 0.06),
-    primaryGlow: tokens.brandGlow,
-    blockchain: tokens.brandSecondary,
-    blockchainMuted: withAlpha(tokens.brandSecondary, 0.14),
-    blockchainSubtle: withAlpha(tokens.brandSecondary, 0.06),
-    terracotta: tokens.accentTerracotta,
-    ochre: tokens.accentOchre,
-    sand: tokens.accentSand,
-    saffron: tokens.accentSaffron,
-  },
+    text: {
+      primary: t.textPrimary,
+      secondary: t.textSecondary,
+      tertiary: t.textTertiary,
+      disabled: t.textDisabled,
+      inverse: t.textInverse,
+      link: t.brandSecondary,
+    },
 
-  aware: {
-    access: tokens.awareAccess,
-    accessBg: withAlpha(tokens.awareAccess, 0.14),
-    watch: tokens.awareWatch,
-    watchBg: withAlpha(tokens.awareWatch, 0.14),
-    reserve: tokens.awareReserve,
-    reserveBg: withAlpha(tokens.awareReserve, 0.14),
-  },
+    accent: {
+      primary: t.brandPrimary,
+      primaryHover: t.brandPrimaryHover,
+      primaryMuted: withAlpha(t.brandPrimary, 0.12),
+      primarySubtle: withAlpha(t.brandPrimary, 0.06),
+      primaryGlow: t.brandGlow,
+      blockchain: t.brandSecondary,
+      blockchainMuted: withAlpha(t.brandSecondary, 0.14),
+      blockchainSubtle: withAlpha(t.brandSecondary, 0.06),
+      terracotta: t.accentTerracotta,
+      ochre: t.accentOchre,
+      sand: t.accentSand,
+      saffron: t.accentSaffron,
+    },
 
-  status: {
-    success: tokens.success,
-    successBg: tokens.successBg,
-    warning: tokens.warning,
-    warningBg: tokens.warningBg,
-    danger: tokens.danger,
-    dangerBg: tokens.dangerBg,
-    info: tokens.info,
-    infoBg: tokens.infoBg,
-  },
+    aware: {
+      access: t.awareAccess,
+      accessBg: withAlpha(t.awareAccess, 0.14),
+      watch: t.awareWatch,
+      watchBg: withAlpha(t.awareWatch, 0.14),
+      reserve: t.awareReserve,
+      reserveBg: withAlpha(t.awareReserve, 0.14),
+    },
 
-  role: {
-    pharmacy: tokens.rolePharmacy,
-    pharmacyBg: withAlpha(tokens.rolePharmacy, 0.10),
-    vet: tokens.roleVet,
-    vetBg: withAlpha(tokens.roleVet, 0.10),
-    farmer: tokens.roleFarmer,
-    farmerBg: withAlpha(tokens.roleFarmer, 0.10),
-    slaughterhouse: tokens.roleAbattoir,
-    slaughterhouseBg: withAlpha(tokens.roleAbattoir, 0.10),
-    consumer: tokens.roleConsumer,
-    consumerBg: withAlpha(tokens.roleConsumer, 0.10),
-    regulator: tokens.roleRegulator,
-    regulatorBg: withAlpha(tokens.roleRegulator, 0.10),
-  },
-} as const;
+    status: {
+      success: t.success,
+      successBg: t.successBg,
+      warning: t.warning,
+      warningBg: t.warningBg,
+      danger: t.danger,
+      dangerBg: t.dangerBg,
+      info: t.info,
+      infoBg: t.infoBg,
+    },
+
+    role: {
+      pharmacy: t.rolePharmacy,
+      pharmacyBg: withAlpha(t.rolePharmacy, 0.10),
+      vet: t.roleVet,
+      vetBg: withAlpha(t.roleVet, 0.10),
+      farmer: t.roleFarmer,
+      farmerBg: withAlpha(t.roleFarmer, 0.10),
+      slaughterhouse: t.roleAbattoir,
+      slaughterhouseBg: withAlpha(t.roleAbattoir, 0.10),
+      consumer: t.roleConsumer,
+      consumerBg: withAlpha(t.roleConsumer, 0.10),
+      regulator: t.roleRegulator,
+      regulatorBg: withAlpha(t.roleRegulator, 0.10),
+    },
+  } as const;
+}
+
+
+// Force SaaS Light Theme globally as per user request
+export const colors = generateColors(lightTokens);
+export const darkColors = generateColors(darkTokens);
+export const lightColors = generateColors(lightTokens);
+
+
 
 // ── Spacing (4px base) ─────────────────────────────────────────────────────
 
 export const spacing = {
-  xxs: 2,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 24,
   '2xl': 24,
   xxl: 24,
   '3xl': 32,
@@ -176,11 +248,11 @@ export const spacing = {
 // ── Radii ──────────────────────────────────────────────────────────────────
 
 export const radii = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  full: 999,
+  sm: 12,
+  md: 18,
+  lg: 24,
+  xl: 30,
+  full: 9999,
 } as const;
 
 // ── Fonts ──────────────────────────────────────────────────────────────────

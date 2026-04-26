@@ -8,9 +8,11 @@ import {
     View,
     useWindowDimensions
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { AIAssistantCard } from '@/components/AIAssistantCard';
 import { Button, Card, Row } from '@/components/app-ui';
+import { Image } from 'react-native';
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { BlockchainHash } from '@/components/BlockchainHash';
 import { Timeline, type TimelineStep } from '@/components/Timeline';
@@ -89,9 +91,14 @@ function Hero({ isDesktop }: { isDesktop: boolean }) {
         heroStyles.wrap,
         { minHeight: isDesktop ? 640 : 560, paddingHorizontal: isDesktop ? 64 : 24 },
       ]}>
-      {/* Background gradient wash — substitute for a full Tunisian photo */}
-      <View style={heroStyles.bgWash} pointerEvents="none" />
-      <View style={heroStyles.bgVignette} pointerEvents="none" />
+      {/* Background gradient wash */}
+      <LinearGradient
+        colors={['#1F7A4D', '#3FAF6C']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
 
       <View style={heroStyles.inner}>
         <View style={[heroStyles.copy, { maxWidth: 640 }]}>
@@ -156,9 +163,11 @@ function TrustPill({ label }: { label: string }) {
 function FloatingProductCard() {
   return (
     <View style={heroStyles.floatingCard}>
-      <View style={heroStyles.floatingThumb}>
-        <Text style={heroStyles.floatingThumbLabel}>🥩</Text>
-      </View>
+      <Image 
+        source={require('../../assets/images/agritech_hero.png')} 
+        style={heroStyles.floatingThumb} 
+        resizeMode="cover" 
+      />
       <Text style={heroStyles.floatingTitle}>Bœuf de Béja · Élevage El Amri</Text>
       <Text style={heroStyles.floatingSub}>بقري بلدي — باجة</Text>
       <TrustScore score={96} compact showVerifiers={false} />
@@ -643,7 +652,7 @@ const navStyles = StyleSheet.create({
   },
   bar: {
     alignItems: 'center',
-    backgroundColor: withAlpha(tokens.canvas, 0.85),
+    backgroundColor: '#1F7A4D',
     borderBottomColor: colors.border.subtle,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
@@ -652,7 +661,7 @@ const navStyles = StyleSheet.create({
     paddingHorizontal: 20,
     width: '100%',
     ...(Platform.OS === 'web'
-      ? ({ backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 50 } as object)
+      ? ({ backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 } as object)
       : null),
   },
   brand: {
@@ -670,36 +679,33 @@ const navStyles = StyleSheet.create({
       : null),
   },
   brandText: {
-    color: colors.text.primary,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 2.5,
   },
   langActive: {
-    color: colors.accent.primary,
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
   },
   langMuted: {
-    color: colors.text.tertiary,
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.8,
   },
   langRow: {
     alignItems: 'center',
-    backgroundColor: colors.bg.secondary,
-    borderColor: colors.border.subtle,
-    borderRadius: radii.full,
-    borderWidth: 1,
+    backgroundColor: 'transparent',
     flexDirection: 'row',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
   },
   loginLink: {
-    color: colors.text.secondary,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -710,7 +716,7 @@ const navStyles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
   },
   signupBtnText: {
-    color: colors.text.primary,
+    color: '#1F7A4D',
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -722,17 +728,12 @@ const heroStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     ...(Platform.OS === 'web'
       ? ({
-          backgroundImage: `radial-gradient(ellipse at top right, ${withAlpha(tokens.accentOchre, 0.12)}, transparent 60%), radial-gradient(ellipse at bottom left, ${withAlpha(tokens.brandPrimary, 0.18)}, transparent 55%)`,
+          backgroundImage: `radial-gradient(circle at 50% 0%, ${withAlpha(tokens.brandPrimary, 0.15)}, transparent 50%)`,
         } as object)
-      : { backgroundColor: withAlpha(tokens.brandPrimary, 0.06) }),
+      : null),
   },
   bgWash: {
     ...StyleSheet.absoluteFillObject,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage: `linear-gradient(180deg, ${tokens.canvas} 0%, ${withAlpha(tokens.accentTerracotta, 0.05)} 50%, ${tokens.canvas} 100%)`,
-        } as object)
-      : null),
   },
   copy: {
     flex: 1,
@@ -766,8 +767,8 @@ const heroStyles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   floatingCard: {
-    backgroundColor: withAlpha(tokens.surface1, 0.85),
-    borderColor: withAlpha('#FFFFFF', 0.08),
+    backgroundColor: tokens.surface1,
+    borderColor: colors.border.subtle,
     borderRadius: radii.xl,
     borderWidth: 1,
     gap: spacing.sm,
@@ -776,8 +777,7 @@ const heroStyles = StyleSheet.create({
     width: 320,
     ...(Platform.OS === 'web'
       ? ({
-          backdropFilter: 'blur(24px)',
-          boxShadow: `0 24px 48px rgba(0,0,0,0.4), ${`inset 0 1px 0 rgba(255,255,255,0.06)`}`,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)`,
         } as object)
       : null),
   },
@@ -804,15 +804,15 @@ const heroStyles = StyleSheet.create({
     fontSize: 15,
   },
   headline: {
-    color: colors.text.primary,
-    fontWeight: '600',
-    letterSpacing: -1.2,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: -2,
     ...(Platform.OS === 'web'
       ? ({ fontFamily: '"Cabinet Grotesk", "General Sans", sans-serif' } as object)
       : null),
   },
   headlineAccent: {
-    color: colors.accent.sand,
+    color: colors.accent.ochre,
   },
   inner: {
     alignItems: 'center',
@@ -822,13 +822,13 @@ const heroStyles = StyleSheet.create({
     zIndex: 1,
   },
   subhead: {
-    color: colors.text.secondary,
+    color: 'rgba(255,255,255,0.75)',
     fontSize: 17,
     lineHeight: 26,
     maxWidth: 540,
   },
   trustCheck: {
-    color: colors.accent.primary,
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },

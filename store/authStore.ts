@@ -12,9 +12,8 @@ type AuthSession = {
 };
 
 type LoginCredentials = {
-  email?: string;
+  email: string;
   password?: string;
-  role: Role;
 };
 
 type AuthState = AuthSession & {
@@ -97,7 +96,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     const session = await readSession();
     set({ ...(session ?? EMPTY_SESSION), hydrated: true });
   },
-  login: async ({ role }) => {
+  login: async ({ email }) => {
+    let role: Role = 'CONSUMER'; // Default
+    const lowerEmail = email.toLowerCase();
+    if (lowerEmail.includes('pharmacy')) role = 'PHARMACY';
+    else if (lowerEmail.includes('vet')) role = 'VET';
+    else if (lowerEmail.includes('farm')) role = 'FARMER';
+    else if (lowerEmail.includes('abattoir') || lowerEmail.includes('slaughter')) role = 'SLAUGHTERHOUSE';
+
     const mockUser = MOCK_USERS[role];
     const session: AuthSession = {
       ...mockUser,

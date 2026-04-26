@@ -14,6 +14,7 @@ import {
     type ViewStyle
 } from 'react-native';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, elevation, radii, spacing, tokens, typography, withAlpha } from '@/constants/theme';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -177,17 +178,23 @@ export function Card({ children, tone = 'default', variant, accent, style }: Car
     borderColor: isTinted ? withAlpha(toneColor, 0.35) : colors.border.subtle,
   };
 
-  const webShadow = Platform.OS === 'web' && isElevated
-    ? { boxShadow: elevation.brandGlowSoft }
-    : null;
+  const cardShadow = Platform.OS === 'web'
+    ? { boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }
+    : {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.04,
+        shadowRadius: 30,
+        elevation: 2,
+      };
 
   return (
     <View
       style={[
         styles.card,
         cardStyle,
+        cardShadow as ViewStyle,
         isElevated && styles.cardElevated,
-        webShadow as ViewStyle,
         style,
       ]}>
       {isTinted ? (
@@ -328,6 +335,8 @@ export function Button({
     onPress?.();
   };
 
+  const isPrimary = variant === 'primary' || variant === 'cta-large';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -341,25 +350,26 @@ export function Button({
           borderWidth: scheme.border ? 1 : 0,
           minHeight,
           paddingHorizontal: isCta ? spacing.xl : spacing.lg,
-          borderRadius: radii.md,
+          borderRadius: 16,
           alignSelf: isCta ? 'stretch' : 'auto',
+          overflow: 'hidden',
         },
-        isCta && Platform.OS === 'web' ? { boxShadow: elevation.brandGlowSoft } as ViewStyle : null,
+        isPrimary && Platform.OS === 'web' 
+          ? { boxShadow: '0 4px 14px 0 rgba(31,122,77,0.39)' } as ViewStyle 
+          : null,
         disabled && styles.disabled,
         pressed && !disabled ? {
-          backgroundColor: variant === 'primary' || variant === 'cta-large'
-            ? tokens.brandPrimaryPressed
-            : scheme.bg,
-          ...(Platform.OS === 'web' ? ({ boxShadow: elevation.buttonPressed } as ViewStyle) : {}),
+          backgroundColor: isPrimary ? tokens.brandPrimaryPressed : scheme.bg,
+          ...(Platform.OS === 'web' ? ({ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)' } as ViewStyle) : {}),
         } : null,
         style,
       ]}>
-      {scheme.innerTop && Platform.OS === 'web' ? (
+      {scheme.innerTop ? (
         <View
           pointerEvents="none"
           style={[
             StyleSheet.absoluteFillObject,
-            { borderRadius: radii.md, borderTopWidth: 1, borderColor: scheme.innerTop },
+            { borderRadius: 16, borderTopWidth: 1, borderColor: scheme.innerTop },
           ]}
         />
       ) : null}
@@ -367,12 +377,12 @@ export function Button({
       <Text
         style={[
           styles.buttonText,
-          { color: scheme.text, fontSize: isCta ? 16 : 15 },
+          { color: scheme.text, fontSize: isCta ? 16 : 15, zIndex: 1 },
         ]}>
         {children}
       </Text>
       {trailingArrow || isCta ? (
-        <Text style={[styles.buttonText, styles.buttonArrow, { color: scheme.text }]}>
+        <Text style={[styles.buttonText, styles.buttonArrow, { color: scheme.text, zIndex: 1 }]}>
           {'  →'}
         </Text>
       ) : null}
