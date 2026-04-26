@@ -80,3 +80,9 @@ coverage/
 *.pem
 *.key
 !*.example
+
+# Mobile additions
+skills-lock.json
+.agents/
+plan.md
+abattoir.test.tsx.snap
