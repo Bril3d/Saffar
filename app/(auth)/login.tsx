@@ -66,7 +66,9 @@ function RoleCard({
 /* ── Main Screen ──────────────────────────────────── */
 
 export default function LoginScreen() {
-  const { login, selectRole, selectedRole } = useAuth();
+  const { login, register, selectRole, selectedRole } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -93,7 +95,6 @@ export default function LoginScreen() {
     try {
       await login(selectedRole, email, password);
 
-      // Navigate to the correct actor home
       const routeMap: Record<Role, string> = {
         PHARMACY: '/(pharmacy)/home',
         VET: '/(vet)/home',
@@ -102,11 +103,78 @@ export default function LoginScreen() {
         CONSUMER: '/(consumer)/home',
       };
       router.replace(routeMap[selectedRole] as any);
-    } catch {
-      setError('Échec de la connexion. Veuillez réessayer.');
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error?.message ||
+        err?.message ||
+        'Échec de la connexion. Veuillez réessayer.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRegister = async () => {
+    setError('');
+
+    if (!selectedRole) {
+      setError('Veuillez sélectionner votre rôle');
+      return;
+    }
+    if (!name.trim()) {
+      setError('Veuillez entrer votre nom');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Veuillez entrer votre email');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('Le mot de passe doit contenir au moins une majuscule');
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setError('Le mot de passe doit contenir au moins une minuscule');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('Le mot de passe doit contenir au moins un chiffre');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await register(selectedRole, name, email, password);
+
+      const routeMap: Record<Role, string> = {
+        PHARMACY: '/(pharmacy)/home',
+        VET: '/(vet)/home',
+        FARMER: '/(farmer)/home',
+        SLAUGHTERHOUSE: '/(abattoir)/home',
+        CONSUMER: '/(consumer)/home',
+      };
+      router.replace(routeMap[selectedRole] as any);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error?.message ||
+        err?.message ||
+        'Échec de l\'inscription. Veuillez réessayer.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleMode = () => {
+    setIsRegister(!isRegister);
+    setError('');
+    setName('');
+    setEmail('');
+    setPassword('');
   };
 
   return (
@@ -128,27 +196,49 @@ export default function LoginScreen() {
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>Bienvenue</Text>
-          <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
+          <Text style={styles.title}>
+            {isRegister ? 'Créer un compte' : 'Bienvenue'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isRegister
+              ? 'Choisissez votre rôle et créez votre compte'
+              : 'Connectez-vous à votre compte'}
+          </Text>
 
-          {/* Role Selector */}
+          {/* Role Selector — both modes */}
           <Text style={styles.sectionLabel}>Sélectionnez votre rôle</Text>
           <View style={styles.rolesGrid}>
-            {roles.map((r) => (
-              <RoleCard
-                key={r.id}
-                icon={r.icon}
-                label={r.label}
-                selected={selectedRole === r.id}
-                onPress={() => selectRole(r.id)}
-              />
-            ))}
+                {roles.map((r) => (
+                  <RoleCard
+                    key={r.id}
+                    icon={r.icon}
+                    label={r.label}
+                    selected={selectedRole === r.id}
+                    onPress={() => selectRole(r.id)}
+                  />
+                ))}
           </View>
 
           {/* Error */}
           {!!error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          )}
+
+          {/* Name Input — register only */}
+          {isRegister && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputIcon}>👤</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nom complet"
+                placeholderTextColor={Colors.outline}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
             </View>
           )}
 
@@ -189,23 +279,38 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Login Button */}
+          {/* Password hint — register only */}
+          {isRegister && (
+            <Text style={styles.passwordHint}>
+              8+ caractères, 1 majuscule, 1 minuscule, 1 chiffre
+            </Text>
+          )}
+
+          {/* Primary Action Button */}
           <TouchableOpacity
             style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
             activeOpacity={0.85}
-            onPress={handleLogin}
+            onPress={isRegister ? handleRegister : handleLogin}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={Colors.onPrimary} />
             ) : (
-              <Text style={styles.primaryButtonText}>Se connecter</Text>
+              <Text style={styles.primaryButtonText}>
+                {isRegister ? "S'inscrire" : 'Se connecter'}
+              </Text>
             )}
           </TouchableOpacity>
 
-          {/* Register */}
-          <TouchableOpacity style={styles.ghostButton} activeOpacity={0.7}>
-            <Text style={styles.ghostButtonText}>Créer un compte</Text>
+          {/* Toggle Login/Register */}
+          <TouchableOpacity
+            style={styles.ghostButton}
+            activeOpacity={0.7}
+            onPress={toggleMode}
+          >
+            <Text style={styles.ghostButtonText}>
+              {isRegister ? 'Déjà un compte ? Se connecter' : 'Créer un compte'}
+            </Text>
           </TouchableOpacity>
 
           {/* Footer */}
@@ -403,5 +508,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.outline,
     marginTop: Spacing.xl,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
 });

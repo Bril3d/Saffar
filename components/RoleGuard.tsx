@@ -2,25 +2,19 @@ import { Redirect } from 'expo-router';
 import { type ComponentType, type PropsWithChildren } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { colors, typography } from '@/constants/theme';
-import { useAuthStore } from '@/store/authStore';
-import { type Role } from '@/types/domain';
+import { Colors } from '@/constants/theme';
+import { useAuth } from '@/store/authStore';
+import { type Role } from '@/store/authStore';
 
 type RoleGuardProps = PropsWithChildren<{
   allowedRoles: Role[];
 }>;
 
 export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
-  const hydrated = useAuthStore((state) => state.hydrated);
-  const role = useAuthStore((state) => state.role);
+  const { role, isAuthenticated } = useAuth();
 
-  if (!hydrated) {
-    return (
-      <View style={styles.loading}>
-        <Text style={styles.brand}>SAFAR</Text>
-        <ActivityIndicator color={colors.accent.primary} size="small" />
-      </View>
-    );
+  if (!isAuthenticated) {
+    return <Redirect href="/login" />;
   }
 
   if (!role || !allowedRoles.includes(role)) {
@@ -45,15 +39,16 @@ export function withRoleGuard<TProps extends object>(
 
 const styles = StyleSheet.create({
   brand: {
-    ...typography.overline,
-    color: colors.accent.primary,
+    color: Colors.primary,
     fontSize: 14,
+    fontWeight: '700',
     letterSpacing: 4,
     marginBottom: 16,
+    textTransform: 'uppercase',
   },
   loading: {
     alignItems: 'center',
-    backgroundColor: colors.bg.primary,
+    backgroundColor: Colors.surface,
     flex: 1,
     justifyContent: 'center',
   },

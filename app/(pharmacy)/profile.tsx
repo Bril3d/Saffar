@@ -3,12 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import ProfileScreen from '@/components/ProfileScreen';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/store/authStore';
 
 export default function PharmacyProfile() {
+  const { user } = useAuth();
   return (
     <ProfileScreen
-      role="Pharmacien" roleIcon="💊" name="Ahmed Bouazizi" email="ahmed@pharmacie-centrale.tn"
-      walletAddress="0x7f3a…e4b2"
+      role="Pharmacien" roleIcon="💊" name={user?.name || 'Pharmacien'} email={user?.email || ''}
+      walletAddress={user?.walletAddress || 'Non connecté'}
       stats={[
         { label: 'Ventes', value: '142' },
         { label: 'Ce mois', value: '24' },

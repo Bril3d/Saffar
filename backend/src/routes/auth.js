@@ -17,6 +17,8 @@ const router = express.Router();
 
 // ---- Validation Schemas ----
 
+const VALID_ROLES = ['PHARMACY', 'VET', 'FARMER', 'SLAUGHTERHOUSE', 'CONSUMER'];
+
 const registerSchema = z.object({
     name: z.string().min(2).max(100),
     email: z.string().email().max(200),
@@ -24,6 +26,7 @@ const registerSchema = z.object({
         .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
         .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
         .regex(/[0-9]/, 'Password must contain at least one number'),
+    role: z.enum(VALID_ROLES).optional().default('CONSUMER'),
     phone: z.string().max(20).optional(),
     governorate: z.string().max(50).optional()
 });
@@ -43,12 +46,12 @@ const walletLoginSchema = z.object({
 
 /**
  * POST /api/auth/register
- * Consumer self-registration only.
- * Blockchain actors are registered by ADMIN via AccessControl.
+ * Self-registration for all roles.
  */
 router.post('/register', validate(registerSchema), async (req, res, next) => {
     try {
-        const { name, email, password, phone, governorate } = req.body;
+        const { name, email, password, role, phone, governorate } = req.body;
+        const userRole = role || 'CONSUMER';
         const db = getDb();
 
         // Check if email already exists
@@ -63,13 +66,13 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
 
         db.prepare(`
             INSERT INTO users (id, role, name, email, password_hash, phone, governorate, verified)
-            VALUES (?, 'CONSUMER', ?, ?, ?, ?, ?, 1)
-        `).run(id, name, email, passwordHash, phone || null, governorate || null);
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+        `).run(id, userRole, name, email, passwordHash, phone || null, governorate || null);
 
-        const user = { id, role: 'CONSUMER', name, email };
-        const token = generateToken({ id, role: 'CONSUMER' });
+        const user = { id, role: userRole, name, email };
+        const token = generateToken({ id, role: userRole });
 
-        logAudit(id, 'CONSUMER', 'REGISTER', '/api/auth/register', id, req);
+        logAudit(id, userRole, 'REGISTER', '/api/auth/register', id, req);
         res.status(201).json(success({ token, user }));
     } catch (e) {
         next(e);

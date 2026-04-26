@@ -1,37 +1,45 @@
 /**
  * Consumer — Orders Screen
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getOrders } from '@/services/api';
+import type { OrderResponse } from '@/services/types';
 
-const orders = [
-  { id: 'CMD-301', items: 'Poulet Bio × 2', total: '22.000', date: '26 Avr', status: 'En livraison 🚚' },
-  { id: 'CMD-300', items: 'Oeufs × 5', total: '24.000', date: '24 Avr', status: 'Livré ✅' },
-  { id: 'CMD-299', items: 'Viande Bovine × 1', total: '28.000', date: '20 Avr', status: 'Livré ✅' },
-];
+const statusMap: Record<string, string> = { PENDING: '⏳ En attente', CONFIRMED: '✅ Confirmée', PREPARING: '📦 En préparation', READY: '🚚 En livraison', DELIVERED: '✅ Livré' };
 
 export default function OrdersScreen() {
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getOrders().then(r => setOrders(r.orders || [])).catch(() => setOrders([])).finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={st.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <Text style={st.title}>📦 Mes Commandes</Text>
-        {orders.map((o, i) => (
-          <View key={i} style={st.card}>
-            <View style={{ flex: 1 }}>
-              <Text style={st.id}>{o.id}</Text>
-              <Text style={st.items}>{o.items}</Text>
-              <Text style={st.date}>{o.date}</Text>
+        {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} /> :
+          orders.length === 0 ? <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 30 }}>Aucune commande</Text> :
+          orders.map((o) => (
+            <View key={o.id} style={st.card}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.id}>{o.id?.slice(0, 12)}</Text>
+                <Text style={st.items}>{o.product_title} × {o.quantity}</Text>
+                <Text style={st.date}>{new Date(o.created_at).toLocaleDateString('fr-FR')}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                <Text style={st.total}>{o.total_price?.toFixed(3)} TND</Text>
+                <Text style={st.status}>{statusMap[o.status] || o.status}</Text>
+              </View>
             </View>
-            <View style={{ alignItems: 'flex-end', gap: 4 }}>
-              <Text style={st.total}>{o.total} TND</Text>
-              <Text style={st.status}>{o.status}</Text>
-            </View>
-          </View>
-        ))}
+          ))
+        }
       </ScrollView>
       <View style={st.tabBar}>
         <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/home')}><Text style={st.tI}>🏠</Text><Text style={st.tL}>Accueil</Text></TouchableOpacity>

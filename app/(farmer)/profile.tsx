@@ -3,12 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import ProfileScreen from '@/components/ProfileScreen';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/store/authStore';
 
 export default function FarmerProfile() {
+  const { user } = useAuth();
   return (
     <ProfileScreen
-      role="Éleveur" roleIcon="🐄" name="Mohamed Ennouri" email="mohamed@ferme-elbaraka.tn"
-      walletAddress="0x9d4e…9abc"
+      role="Éleveur" roleIcon="🐄" name={user?.name || 'Éleveur'} email={user?.email || ''}
+      walletAddress={user?.walletAddress || 'Non connecté'}
       stats={[
         { label: 'Lots', value: '8' },
         { label: 'Certifiés', value: '3' },

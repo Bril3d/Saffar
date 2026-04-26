@@ -1,229 +1,254 @@
+/**
+ * SAFAR Chain — API Service
+ * All functions call the real Express.js backend.
+ * No mock data — every return value comes from the server.
+ */
+
 import axios from 'axios';
-
-import {
-  drugSales,
-  lots,
-  orders,
-  prescriptions,
-  products,
-  txHashes,
-  vets,
-  type Lot,
-  type Order,
-  type Prescription,
-  type Product,
-} from '@/services/mockData';
 import { getAuthSnapshot } from '@/store/authStore';
-import { awareClassForAtc, type AwareClass } from '@/types/domain';
+import type {
+  CreateDrugSaleResponse,
+  CreateOrderResponse,
+  CreatePrescriptionResponse,
+  ConfirmPrescriptionResponse,
+  CertifyLotResponse,
+  CreateProductResponse,
+  DrugSaleResponse,
+  EligibilityResponse,
+  OrderResponse,
+  PrescriptionResponse,
+  ProductResponse,
+  TraceResponse,
+  VetAssistantResponse,
+} from '@/services/types';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 5000,
+  timeout: 15_000,
 });
 
+// Inject Bearer token on every request
 apiClient.interceptors.request.use((config) => {
   const { token } = getAuthSnapshot();
-
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 
-const delay = () => new Promise((resolve) => setTimeout(resolve, 180));
-
-export async function getVets() {
-  await delay();
-  return vets;
+// Unwrap { success, data, error } envelope
+function unwrap<T>(res: { data: { success: boolean; data: T; error: any } }): T {
+  if (!res.data.success) {
+    const msg = res.data.error?.message || 'Unknown API error';
+    const code = res.data.error?.code || 'API_ERROR';
+    const err = new Error(msg) as any;
+    err.code = code;
+    throw err;
+  }
+  return res.data.data;
 }
 
-export async function getRecentDrugSales() {
-  await delay();
-  return drugSales;
+/* ═══════════════════════════════════════════════════
+   AUTH
+   ═══════════════════════════════════════════════════ */
+
+// Auth is handled directly in authStore.ts via axios.post
+
+/* ═══════════════════════════════════════════════════
+   DRUG SALES (Pharmacy)
+   ═══════════════════════════════════════════════════ */
+
+export async function getRecentDrugSales(): Promise<DrugSaleResponse[]> {
+  const res = await apiClient.get('/api/drugs/sales');
+  return unwrap<{ sales: DrugSaleResponse[] }>(res).sales;
+}
+
+export async function getDrugSale(saleId: string): Promise<DrugSaleResponse> {
+  const res = await apiClient.get(`/api/drugs/sale/${saleId}`);
+  return unwrap(res);
 }
 
 export async function createDrugSale(input: {
+  vetId: string;
   atcCode: string;
   batchNumber: string;
   quantity: number;
-  vetId: string;
-}) {
-  await delay();
-  return {
-    awareClass: awareClassForAtc(input.atcCode),
-    saleId: `sale-${Date.now()}`,
-    txHash: txHashes.sale,
-  };
+  awareClass: 'Access' | 'Watch' | 'Reserve';
+}): Promise<CreateDrugSaleResponse> {
+  const res = await apiClient.post('/api/drugs/sale', input);
+  return unwrap(res);
 }
 
-export async function getVetDrugSales() {
-  await delay();
-  return drugSales.filter((sale) => sale.vetId === 'vet-001');
-}
-
-export async function askVetAssistant(symptoms: string) {
-  await delay();
-  const severe = symptoms.toLowerCase().includes('colistine');
-
-  return {
-    atcCode: severe ? 'J01XB01' : 'J01CA04',
-    awareClass: severe ? ('Reserve' as AwareClass) : ('Access' as AwareClass),
-    molecule: severe ? 'Colistine' : 'Amoxicilline',
-    recommendation: severe
-      ? 'Reserve a un cas critique documente. Confirmer avec culture et antibiogramme.'
-      : 'Traitement de premiere intention avec suivi du lot et respect du delai de retrait.',
-    withdrawalDays: severe ? 7 : 3,
-  };
-}
+/* ═══════════════════════════════════════════════════
+   PRESCRIPTIONS (Vet)
+   ═══════════════════════════════════════════════════ */
 
 export async function createPrescription(input: {
+  saleId: string;
+  farmerId: string;
   animalLotId: string;
   diagnosis: string;
-  farmerId: string;
-  saleId: string;
+  dosage: number;
   withdrawalDays: number;
-}) {
-  await delay();
-  return {
-    rxId: `rx-${Date.now()}`,
-    txHash: txHashes.certificate,
-    withdrawalEnd: '2026-05-03',
-    ...input,
-  };
+}): Promise<CreatePrescriptionResponse> {
+  const res = await apiClient.post('/api/prescriptions', input);
+  return unwrap(res);
 }
 
-export async function getPrescription(id = 'rx-901') {
-  await delay();
-  return prescriptions.find((prescription) => prescription.id === id) ?? prescriptions[1];
+export async function getPrescription(rxId: string): Promise<PrescriptionResponse> {
+  const res = await apiClient.get(`/api/prescriptions/${rxId}`);
+  return unwrap(res);
 }
 
-export async function confirmPrescription(id: string, payload: { administeredAt: string; notes?: string }) {
-  await delay();
-  return {
-    confirmed: true,
-    id,
-    txHash: txHashes.certificate,
-    withdrawalEnd: '2026-05-03',
-    ...payload,
-  };
+export async function confirmPrescription(rxId: string): Promise<ConfirmPrescriptionResponse> {
+  const res = await apiClient.put(`/api/prescriptions/${rxId}/confirm`);
+  return unwrap(res);
 }
 
-export async function getFarmerLots() {
-  await delay();
-  return lots;
+export async function getFarmerPrescriptions(farmerId: string): Promise<PrescriptionResponse[]> {
+  const res = await apiClient.get(`/api/prescriptions/farm/${farmerId}`);
+  return unwrap<{ prescriptions: PrescriptionResponse[] }>(res).prescriptions;
 }
 
-export async function getCertifiedLots() {
-  await delay();
-  return lots.filter((lot) => lot.status === 'CERTIFIED');
+/* ═══════════════════════════════════════════════════
+   LOTS (Abattoir / Traceability)
+   ═══════════════════════════════════════════════════ */
+
+export async function getEligibility(lotId: string, rxId: string): Promise<EligibilityResponse> {
+  const res = await apiClient.get(`/api/lots/${lotId}/eligibility`, { params: { rxId } });
+  return unwrap(res);
+}
+
+export async function certifyLot(lotId: string, rxId: string): Promise<CertifyLotResponse> {
+  const res = await apiClient.post(`/api/lots/${lotId}/certify`, { rxId });
+  return unwrap(res);
+}
+
+export async function getTraceability(lotId: string): Promise<TraceResponse> {
+  const res = await apiClient.get(`/api/lots/${lotId}/trace`);
+  return unwrap(res);
+}
+
+/* ═══════════════════════════════════════════════════
+   PRODUCTS (Farmer → Consumer Marketplace)
+   ═══════════════════════════════════════════════════ */
+
+export async function getProducts(params?: {
+  category?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ products: ProductResponse[]; pagination: any }> {
+  const res = await apiClient.get('/api/products', { params });
+  return unwrap(res);
+}
+
+export async function getProduct(productId: string): Promise<{ product: ProductResponse }> {
+  const res = await apiClient.get(`/api/products/${productId}`);
+  return unwrap(res);
 }
 
 export async function publishProduct(input: {
-  category: string;
   lotId: string;
-  price: number;
-  stock: number;
   title: string;
-}) {
-  await delay();
-  return { productId: `product-${Date.now()}`, status: 'ACTIVE', ...input };
+  description?: string;
+  category: string;
+  pricePerUnit: number;
+  unit: string;
+  quantityAvailable: number;
+  deliveryOptions: string;
+  locationAddress?: string;
+}): Promise<CreateProductResponse> {
+  const res = await apiClient.post('/api/products', input);
+  return unwrap(res);
 }
 
-export async function getFarmerOrders() {
-  await delay();
-  return orders;
+export async function updateProduct(productId: string, input: Record<string, any>): Promise<{ updated: boolean }> {
+  const res = await apiClient.put(`/api/products/${productId}`, input);
+  return unwrap(res);
 }
 
-export async function updateOrderStatus(orderId: string, status: Order['status']) {
-  await delay();
-  return { orderId, status };
+/* ═══════════════════════════════════════════════════
+   ORDERS (Consumer)
+   ═══════════════════════════════════════════════════ */
+
+export async function getOrders(): Promise<{ orders: OrderResponse[] }> {
+  const res = await apiClient.get('/api/orders');
+  return unwrap(res);
 }
 
-export async function getEligibility(lotId: string) {
-  await delay();
-  const lot = lots.find((item) => item.id === lotId) ?? lots[1];
-  const eligible = lot.status === 'CERTIFIED';
-
-  return {
-    daysRemaining: eligible ? 0 : 5,
-    eligible,
-    lotDetails: lot,
-    prescription: prescriptions.find((prescription) => prescription.animalLotId === lot.id),
-    txHash: eligible ? txHashes.certificate : prescriptions[1].txHash,
-  };
-}
-
-export async function certifyLot(lotId: string) {
-  await delay();
-  return {
-    certificateHash: txHashes.certificate,
-    lotId,
-    txHash: txHashes.certificate,
-  };
-}
-
-export async function getProducts(category?: string) {
-  await delay();
-  return category ? products.filter((product) => product.category === category) : products;
-}
-
-export async function getProduct(productId = 'product-882') {
-  await delay();
-  return products.find((product) => product.id === productId) ?? products[0];
-}
-
-export async function getTraceability(lotId = 'L-882') {
-  await delay();
-  const lot = lots.find((item) => item.id === lotId) ?? lots[0];
-  const product = products.find((item) => item.lotId === lot.id) ?? products[0];
-
-  return {
-    antibioticClass: lot.awareClass,
-    certificateHash: product.certificateHash,
-    farmRegion: lot.farmRegion,
-    lotId: lot.id,
-    productTitle: product.title,
-    trustScore: product.trustScore,
-    txHash: txHashes.certificate,
-    withdrawalRespected: lot.status === 'CERTIFIED',
-  };
+export async function getOrder(orderId: string): Promise<{ order: OrderResponse }> {
+  const res = await apiClient.get(`/api/orders/${orderId}`);
+  return unwrap(res);
 }
 
 export async function createOrder(input: {
-  deliveryAddress?: string;
-  deliveryMode: 'pickup' | 'delivery';
   productId: string;
   quantity: number;
-  total: number;
-}) {
-  await delay();
-  return {
-    commission: input.total * 0.1,
-    farmerPayout: input.total * 0.9,
-    orderId: `order-${Date.now()}`,
-    txHash: txHashes.order,
-  };
+  deliveryOption: 'PICKUP' | 'DELIVERY';
+  deliveryAddress?: string;
+}): Promise<CreateOrderResponse> {
+  const res = await apiClient.post('/api/orders', input);
+  return unwrap(res);
 }
 
-export function lotTone(lot: Lot) {
-  if (lot.status === 'CERTIFIED') {
-    return 'green';
-  }
-
-  if (lot.status === 'WITHDRAWAL') {
-    return 'amber';
-  }
-
-  return 'default';
+export async function updateOrderStatus(
+  orderId: string,
+  status: string
+): Promise<{ orderId: string; previousStatus: string; newStatus: string }> {
+  const res = await apiClient.put(`/api/orders/${orderId}/status`, { status });
+  return unwrap(res);
 }
 
-export function productById(productId?: string): Product {
-  return products.find((product) => product.id === productId) ?? products[0];
+/* ═══════════════════════════════════════════════════
+   REVIEWS
+   ═══════════════════════════════════════════════════ */
+
+export async function createReview(input: {
+  orderId: string;
+  rating: number;
+  comment?: string;
+}): Promise<{ reviewId: string; rating: number }> {
+  const res = await apiClient.post('/api/reviews', input);
+  return unwrap(res);
 }
 
-export function prescriptionByLot(lotId?: string): Prescription | undefined {
-  return prescriptions.find((prescription) => prescription.animalLotId === lotId);
+export async function getFarmerReviews(
+  farmerId: string
+): Promise<{ reviews: any[]; avgRating: number; totalReviews: number }> {
+  const res = await apiClient.get(`/api/reviews/farmer/${farmerId}`);
+  return unwrap(res);
+}
+
+/* ═══════════════════════════════════════════════════
+   AI ASSISTANT
+   ═══════════════════════════════════════════════════ */
+
+export async function askVetAssistant(
+  symptoms: string,
+  lotSize?: number
+): Promise<VetAssistantResponse> {
+  const res = await apiClient.post('/api/ai/assistant/vet', { symptoms, lotSize });
+  return unwrap(res);
+}
+
+export async function askFarmerAssistant(
+  question: string,
+  lotId?: string
+): Promise<{ answer: string; model: string }> {
+  const res = await apiClient.post('/api/ai/assistant/farmer', { question, lotId });
+  return unwrap(res);
+}
+
+export async function explainTrace(
+  lotId: string
+): Promise<{ explanation: string; lotId: string }> {
+  const res = await apiClient.post('/api/ai/explain/trace', { lotId });
+  return unwrap(res);
+}
+
+export async function getAIStatus(): Promise<any> {
+  const res = await apiClient.get('/api/ai/status');
+  return unwrap(res);
 }

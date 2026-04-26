@@ -1,46 +1,64 @@
 /**
  * Vet — Prescriptions List Screen
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { apiClient } from '@/services/api';
+import { useAuth } from '@/store/authStore';
+import type { PrescriptionResponse } from '@/services/types';
 
-const prescriptions = [
-  { id: 'P-1234', drug: 'Amoxicilline 500mg', farmer: 'Ferme El Baraka', status: 'active' as const, date: '22 Avr' },
-  { id: 'P-1233', drug: 'Enrofloxacine 100mg', farmer: 'Ferme Sidi Bou', status: 'withdrawal' as const, date: '20 Avr' },
-  { id: 'P-1232', drug: 'Amoxicilline 500mg', farmer: 'Ferme Al Waha', status: 'completed' as const, date: '15 Avr' },
-  { id: 'P-1231', drug: 'Colistine 2MUI', farmer: 'Ferme Ennour', status: 'completed' as const, date: '10 Avr' },
-];
-const statusCfg = {
+const statusCfg: Record<string, { label: string; color: string; bg: string }> = {
   active: { label: 'Active', color: Colors.primary, bg: Colors.primaryFixed },
   withdrawal: { label: 'Retrait', color: Colors.status.withdrawal, bg: '#FFF8E1' },
   completed: { label: 'Terminée', color: Colors.status.certified, bg: '#E8F5E9' },
 };
 
+function deriveStatus(rx: PrescriptionResponse): 'active' | 'withdrawal' | 'completed' {
+  if (!rx.administered) return 'active';
+  const wEnd = new Date(rx.withdrawal_end);
+  return wEnd.getTime() > Date.now() ? 'withdrawal' : 'completed';
+}
+
 export default function PrescriptionsScreen() {
+  const { user } = useAuth();
+  const [prescriptions, setRxs] = useState<PrescriptionResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/api/prescriptions')
+      .then(res => setRxs(res.data?.data?.prescriptions || []))
+      .catch(() => setRxs([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>Mes Prescriptions</Text>
         <Text style={s.subtitle}>{prescriptions.length} prescriptions</Text>
-        {prescriptions.map((rx, i) => {
-          const cfg = statusCfg[rx.status];
-          return (
-            <TouchableOpacity key={i} style={s.card} onPress={() => router.push('/(vet)/prescription-detail')} activeOpacity={0.7}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.rxId}>{rx.id}</Text>
-                <Text style={s.rxDrug}>{rx.drug}</Text>
-                <Text style={s.rxFarmer}>{rx.farmer} · {rx.date}</Text>
-              </View>
-              <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
-                <Text style={[s.statusText, { color: cfg.color }]}>{cfg.label}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+        {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} /> :
+          prescriptions.length === 0 ? <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 30 }}>Aucune prescription</Text> :
+          prescriptions.map((rx) => {
+            const status = deriveStatus(rx);
+            const cfg = statusCfg[status];
+            return (
+              <TouchableOpacity key={rx.rx_id} style={s.card} onPress={() => router.push({ pathname: '/(vet)/prescription-detail', params: { rxId: rx.rx_id } } as any)} activeOpacity={0.7}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.rxId}>{rx.rx_id?.slice(0, 12)}</Text>
+                  <Text style={s.rxDrug}>{rx.diagnosis}</Text>
+                  <Text style={s.rxFarmer}>Lot: {rx.animal_lot_id} · {new Date(rx.created_at).toLocaleDateString('fr-FR')}</Text>
+                </View>
+                <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
+                  <Text style={[s.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        }
       </ScrollView>
       <View style={s.tabBar}>
         <TouchableOpacity style={s.tab} onPress={() => router.replace('/(vet)/home')}><Text style={s.tabIcon}>🏠</Text><Text style={s.tabLabel}>Accueil</Text></TouchableOpacity>

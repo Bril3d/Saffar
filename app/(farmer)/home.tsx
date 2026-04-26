@@ -3,45 +3,18 @@
  * Withdrawal alerts, lot cards with status, offline indicator.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getFarmerPrescriptions } from '@/services/api';
+import { useAuth } from '@/store/authStore';
+import type { PrescriptionResponse } from '@/services/types';
 
-const stats = [
-  { value: '8', label: 'Lots actifs', color: Colors.onSurfaceVariant },
-  { value: '3', label: 'Certifiés ✅', color: Colors.status.certified },
-  { value: '2', label: 'En retrait ⏳', color: Colors.status.withdrawal },
-];
-
-const lots = [
-  {
-    id: '#1234',
-    name: 'Poulets de chair',
-    status: 'certified' as const,
-    daysRemaining: 0,
-  },
-  {
-    id: '#1235',
-    name: 'Oeufs',
-    status: 'withdrawal' as const,
-    daysRemaining: 3,
-  },
-  {
-    id: '#1236',
-    name: 'Bovins',
-    status: 'pending' as const,
-    daysRemaining: 0,
-  },
-];
+// Stats and lots will be derived from prescriptions dynamically
 
 const statusCfg = {
   certified: { label: 'Certifié', color: Colors.status.certified, bg: '#E8F5E9' },
@@ -86,63 +59,61 @@ function LotCard({ id, name, status, daysRemaining }: typeof lots[0]) {
 }
 
 export default function FarmerHomeScreen() {
+  const { user } = useAuth();
+  const [prescriptions, setRxs] = useState<PrescriptionResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      getFarmerPrescriptions(user.id).then(setRxs).catch(() => setRxs([])).finally(() => setLoading(false));
+    } else { setLoading(false); }
+  }, [user?.id]);
+
+  const lots = prescriptions.map(rx => {
+    const wEnd = new Date(rx.withdrawal_end);
+    const days = Math.max(0, Math.ceil((wEnd.getTime() - Date.now()) / 86400000));
+    const status = rx.administered ? (days > 0 ? 'withdrawal' : 'certified') : 'pending';
+    return { id: rx.rx_id?.slice(0, 8), name: rx.diagnosis || rx.animal_lot_id, status: status as 'certified'|'withdrawal'|'pending', daysRemaining: days };
+  });
+
+  const stats = [
+    { value: String(lots.length), label: 'Lots actifs', color: Colors.onSurfaceVariant },
+    { value: String(lots.filter(l => l.status === 'certified').length), label: 'Certifiés ✅', color: Colors.status.certified },
+    { value: String(lots.filter(l => l.status === 'withdrawal').length), label: 'En retrait ⏳', color: Colors.status.withdrawal },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-
-      {/* Offline bar */}
-      <View style={styles.offlineBar}>
-        <Text style={styles.offlineText}>📶 Hors connexion · 2 actions en attente</Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerIcon}>🐄</Text>
-            <Text style={styles.headerTitle}>Éleveur</Text>
-          </View>
+          <View style={styles.headerLeft}><Text style={styles.headerIcon}>🐄</Text><Text style={styles.headerTitle}>Éleveur</Text></View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.notifBtn}>
-              <Text style={{ fontSize: 18 }}>🔔</Text>
-            </TouchableOpacity>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>E</Text>
+            <TouchableOpacity style={styles.notifBtn}><Text style={{ fontSize: 18 }}>🔔</Text></TouchableOpacity>
+            <View style={styles.avatar}><Text style={styles.avatarText}>{user?.name?.[0] || 'E'}</Text></View>
+          </View>
+        </View>
+
+        {lots.filter(l => l.status === 'withdrawal').length > 0 && (
+          <View style={styles.alertBanner}>
+            <Text style={styles.alertIcon}>⚠️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.alertTitle}>{lots.filter(l => l.status === 'withdrawal').length} lots en période de retrait</Text>
+              <Text style={styles.alertSubtitle}>Vérifiez les délais avant publication</Text>
             </View>
           </View>
-        </View>
+        )}
 
-        {/* Alert banner */}
-        <View style={styles.alertBanner}>
-          <Text style={styles.alertIcon}>⚠️</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.alertTitle}>2 lots en période de retrait</Text>
-            <Text style={styles.alertSubtitle}>Vérifiez les délais avant publication</Text>
-          </View>
-        </View>
-
-        {/* Stats */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsRow}>
           {stats.map((s, i) => <StatCard key={i} {...s} />)}
         </ScrollView>
 
-        {/* Filter chips */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes Lots</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {['Tous', 'Certifiés', 'En retrait', 'En attente'].map((c, i) => (
-            <TouchableOpacity key={i} style={[styles.chip, i === 0 && styles.chipActive]}>
-              <Text style={[styles.chipText, i === 0 && styles.chipTextActive]}>{c}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Mes Lots</Text></View>
 
-        {/* Lots */}
-        {lots.map((lot, i) => <LotCard key={i} {...lot} />)}
+        {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} /> :
+          lots.length === 0 ? <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 20 }}>Aucun lot</Text> :
+          lots.map((lot, i) => <LotCard key={lot.id || i} {...lot} />)
+        }
       </ScrollView>
 
       {/* FAB */}

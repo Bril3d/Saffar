@@ -7,6 +7,8 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
 
+import { askVetAssistant } from '@/services/api';
+
 const suggestions = [
   'Quelle posologie pour l\'Amoxicilline chez les poulets ?',
   'Alternatives Watch pour l\'Enrofloxacine ?',
@@ -15,14 +17,29 @@ const suggestions = [
 
 export default function AIAssistantScreen() {
   const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Bonjour Dr. Ben Ali ! Je suis votre assistant IA spécialisé en antibiothérapie vétérinaire. Comment puis-je vous aider ?' },
+    { role: 'assistant', text: 'Bonjour ! Je suis votre assistant IA spécialisé en antibiothérapie vétérinaire. Comment puis-je vous aider ?' },
   ]);
 
-  const sendMessage = (msg: string) => {
-    if (!msg.trim()) return;
-    setMessages(prev => [...prev, { role: 'user', text: msg }, { role: 'assistant', text: 'Je recherche dans la base de données AWaRe et les guidelines vétérinaires... Cette fonctionnalité sera connectée à Ollama en production.' }]);
+  const sendMessage = async (msg: string) => {
+    if (!msg.trim() || loading) return;
+    setMessages(prev => [...prev, { role: 'user', text: msg }]);
     setQuery('');
+    setLoading(true);
+    try {
+      const res = await askVetAssistant(msg);
+      let text = res.recommendation;
+      if (res.guardrails?.warnings?.length) {
+        text += '\n\n⚠️ ' + res.guardrails.warnings.join('\n⚠️ ');
+      }
+      text += '\n\n_' + res.disclaimer + '_';
+      setMessages(prev => [...prev, { role: 'assistant', text }]);
+    } catch (err: any) {
+      setMessages(prev => [...prev, { role: 'assistant', text: '❌ ' + (err?.response?.data?.error?.message || err?.message || 'Service IA indisponible') }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

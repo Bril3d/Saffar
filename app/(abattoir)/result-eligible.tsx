@@ -1,13 +1,28 @@
 /**
  * Abattoir — Result: Eligible
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { certifyLot } from '@/services/api';
 
 export default function ResultEligibleScreen() {
+  const params = useLocalSearchParams<{ lotId: string; rxId: string; daysRemaining: string }>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleCertify = async () => {
+    setLoading(true); setError('');
+    try {
+      await certifyLot(params.lotId, params.rxId);
+      router.replace('/(abattoir)/home');
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message || e?.message || 'Erreur');
+    } finally { setLoading(false); }
+  };
+
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="dark" />
@@ -18,31 +33,22 @@ export default function ResultEligibleScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Result hero */}
         <View style={s.heroCard}>
           <View style={s.heroCircle}><Text style={s.heroIcon}>✅</Text></View>
           <Text style={s.heroTitle}>ÉLIGIBLE</Text>
           <Text style={s.heroSubtitle}>Ce lot peut être abattu en toute sécurité</Text>
         </View>
 
-        {/* Detail */}
         <View style={s.detailCard}>
-          <View style={s.row}><Text style={s.lbl}>Lot</Text><Text style={s.val}>#1234 · Poulets de chair</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Éleveur</Text><Text style={s.val}>Ferme El Baraka</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Dernier traitement</Text><Text style={s.val}>Amoxicilline · 22 Avr</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Retrait requis</Text><Text style={s.val}>5 jours</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Retrait réel</Text><Text style={s.val}>8 jours ✅</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Score de confiance</Text><Text style={[s.val, { color: Colors.primary, fontWeight: '800' }]}>98%</Text></View>
+          <View style={s.row}><Text style={s.lbl}>Lot</Text><Text style={s.val}>{params.lotId}</Text></View>
+          <View style={s.row}><Text style={s.lbl}>Prescription</Text><Text style={s.val}>{params.rxId}</Text></View>
+          <View style={s.row}><Text style={s.lbl}>Jours restants</Text><Text style={s.val}>{params.daysRemaining} jours ✅</Text></View>
         </View>
 
-        {/* On-chain */}
-        <View style={s.hashCard}>
-          <Text style={s.hashLabel}>Vérification Blockchain</Text>
-          <Text style={s.hashValue}>0x7f3a…e4b2</Text>
-        </View>
+        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.md }}>⚠️ {error}</Text>}
 
-        <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(abattoir)/home')} activeOpacity={0.85}>
-          <Text style={s.primaryBtnText}>Confirmer l'abattage</Text>
+        <TouchableOpacity style={[s.primaryBtn, loading && { opacity: 0.7 }]} onPress={handleCertify} activeOpacity={0.85} disabled={loading}>
+          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.primaryBtnText}>Confirmer l'abattage</Text>}
         </TouchableOpacity>
         <TouchableOpacity style={s.ghostBtn} onPress={() => router.replace('/(abattoir)/scanner')}>
           <Text style={s.ghostBtnText}>Scanner un autre lot</Text>

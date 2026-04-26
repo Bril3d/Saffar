@@ -3,12 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import ProfileScreen from '@/components/ProfileScreen';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/store/authStore';
 
 export default function ConsumerProfile() {
+  const { user } = useAuth();
   return (
     <ProfileScreen
-      role="Consommateur" roleIcon="🛒" name="Yasmine Trabelsi" email="yasmine@gmail.com"
-      walletAddress="0xb3g2…1111"
+      role="Consommateur" roleIcon="🛒" name={user?.name || 'Consommateur'} email={user?.email || ''}
+      walletAddress={user?.walletAddress || 'Non connecté'}
       stats={[
         { label: 'Commandes', value: '12' },
         { label: 'Produits scannés', value: '34' },

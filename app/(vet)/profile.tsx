@@ -3,12 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import ProfileScreen from '@/components/ProfileScreen';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/store/authStore';
 
 export default function VetProfile() {
+  const { user } = useAuth();
   return (
     <ProfileScreen
-      role="Vétérinaire" roleIcon="🩺" name="Dr. Sami Ben Ali" email="sami@vet-tunis.tn"
-      walletAddress="0x8b2c…5678"
+      role="Vétérinaire" roleIcon="🩺" name={user?.name || 'Vétérinaire'} email={user?.email || ''}
+      walletAddress={user?.walletAddress || 'Non connecté'}
       stats={[
         { label: 'Prescriptions', value: '87' },
         { label: 'Ce mois', value: '12' },

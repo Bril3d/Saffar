@@ -2,39 +2,49 @@
  * Farmer — Confirm Administration Screen
  * Offline-capable, confirms that prescribed drug was administered to the lot.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
-
-const prescriptions = [
-  { id: 'P-1234', drug: 'Amoxicilline 500mg', lot: 'Poulets de chair', vet: 'Dr. Ben Ali' },
-  { id: 'P-1235', drug: 'Enrofloxacine 100mg', lot: 'Bovins', vet: 'Dr. Trabelsi' },
-];
+import { getFarmerPrescriptions, confirmPrescription } from '@/services/api';
+import { useAuth } from '@/store/authStore';
+import type { PrescriptionResponse } from '@/services/types';
 
 export default function ConfirmAdminScreen() {
+  const { user } = useAuth();
+  const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
-  const [isOffline] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleConfirm = () => {
-    router.back();
+  useEffect(() => {
+    if (user?.id) {
+      getFarmerPrescriptions(user.id)
+        .then(rxs => setPrescriptions(rxs.filter(r => !r.administered)))
+        .catch(() => setPrescriptions([]))
+        .finally(() => setLoading(false));
+    } else { setLoading(false); }
+  }, [user?.id]);
+
+  const handleConfirm = async () => {
+    if (!selected) return;
+    setSubmitting(true); setError('');
+    try {
+      await confirmPrescription(selected);
+      router.back();
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message || e?.message || 'Erreur');
+    } finally { setSubmitting(false); }
   };
 
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="dark" />
-
-      {/* Offline indicator */}
-      {isOffline && (
-        <View style={s.offlineBar}>
-          <Text style={s.offlineText}>📶 Mode hors connexion · Action sera synchronisée</Text>
-        </View>
-      )}
-
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backIcon}>←</Text></TouchableOpacity>
@@ -43,32 +53,36 @@ export default function ConfirmAdminScreen() {
         </View>
 
         <Text style={s.label}>Prescriptions à confirmer</Text>
-        {prescriptions.map((p) => (
-          <TouchableOpacity key={p.id} style={[s.rxCard, selected === p.id && s.rxCardActive]} onPress={() => setSelected(p.id)}>
-            <View style={s.rxLeft}>
-              <View style={[s.radio, selected === p.id && s.radioActive]}>
-                {selected === p.id && <View style={s.radioInner} />}
+        {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} /> :
+          prescriptions.length === 0 ? <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 20 }}>Aucune prescription en attente</Text> :
+          prescriptions.map((p) => (
+            <TouchableOpacity key={p.rx_id} style={[s.rxCard, selected === p.rx_id && s.rxCardActive]} onPress={() => setSelected(p.rx_id)}>
+              <View style={s.rxLeft}>
+                <View style={[s.radio, selected === p.rx_id && s.radioActive]}>
+                  {selected === p.rx_id && <View style={s.radioInner} />}
+                </View>
+                <View>
+                  <Text style={s.rxId}>{p.rx_id?.slice(0, 12)}</Text>
+                  <Text style={s.rxDrug}>{p.diagnosis}</Text>
+                  <Text style={s.rxMeta}>Lot: {p.animal_lot_id} · {p.withdrawal_days}j retrait</Text>
+                </View>
               </View>
-              <View>
-                <Text style={s.rxId}>{p.id}</Text>
-                <Text style={s.rxDrug}>{p.drug}</Text>
-                <Text style={s.rxMeta}>{p.lot} · {p.vet}</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        }
 
         <Text style={s.label}>Notes (optionnel)</Text>
-        <TextInput style={[s.input, s.textarea]} placeholder="Observations sur l'administration..." placeholderTextColor={Colors.outline} value={notes} onChangeText={setNotes} multiline numberOfLines={3} textAlignVertical="top" />
+        <TextInput style={[s.input, s.textarea]} placeholder="Observations..." placeholderTextColor={Colors.outline} value={notes} onChangeText={setNotes} multiline numberOfLines={3} textAlignVertical="top" />
 
         <View style={s.warningBox}>
           <Text style={s.warningIcon}>⚠️</Text>
           <Text style={s.warningText}>Cette action déclenchera le délai de retrait. Assurez-vous que le traitement est terminé.</Text>
         </View>
 
-        <TouchableOpacity style={s.submitBtn} activeOpacity={0.85} onPress={handleConfirm} disabled={!selected}>
-          <Text style={s.submitIcon}>{isOffline ? '📶' : '🔐'}</Text>
-          <Text style={s.submitText}>{isOffline ? 'Confirmer (hors ligne)' : 'Confirmer'}</Text>
+        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.sm }}>⚠️ {error}</Text>}
+
+        <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.7 }]} activeOpacity={0.85} onPress={handleConfirm} disabled={!selected || submitting}>
+          {submitting ? <ActivityIndicator color={Colors.onPrimary} /> : <><Text style={s.submitIcon}>🔐</Text><Text style={s.submitText}>Confirmer</Text></>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

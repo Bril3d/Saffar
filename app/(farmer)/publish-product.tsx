@@ -4,21 +4,39 @@
  */
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
-
-const certifiedLots = [
-  { id: '#1234', name: 'Poulets de chair', certDate: '20 Avr 2026' },
-  { id: '#1237', name: 'Oeufs bio', certDate: '18 Avr 2026' },
-];
+import { publishProduct } from '@/services/api';
 
 export default function PublishProductScreen() {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [lotId, setLotId] = useState('');
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('Poulets');
   const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [desc, setDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const categories = ['Poulets', 'Oeufs', 'Bovins', 'Ovins', 'Lait'];
+
+  const handlePublish = async () => {
+    if (!lotId.trim() || !title.trim() || !price.trim()) { setError('Lot ID, titre et prix requis'); return; }
+    setError(''); setLoading(true);
+    try {
+      await publishProduct({
+        lotId: lotId.trim(), title: title.trim(), description: desc.trim(),
+        category, pricePerUnit: Number(price), unit: 'kg',
+        quantityAvailable: Number(quantity) || 1, deliveryOptions: 'PICKUP',
+      });
+      router.back();
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message || e?.message || 'Erreur');
+    } finally { setLoading(false); }
+  };
 
   return (
     <SafeAreaView style={s.container}>
@@ -30,39 +48,42 @@ export default function PublishProductScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Certified lots */}
-        <Text style={s.label}>Lots certifiés disponibles</Text>
-        {certifiedLots.map((lot) => (
-          <TouchableOpacity key={lot.id} style={[s.lotCard, selected === lot.id && s.lotCardActive]} onPress={() => setSelected(lot.id)}>
-            <View style={s.lotInfo}>
-              <Text style={s.lotName}>{lot.name}</Text>
-              <Text style={s.lotMeta}>Lot {lot.id} · Certifié le {lot.certDate}</Text>
-            </View>
-            <View style={s.certBadge}>
-              <Text style={s.certText}>✅ Certifié</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <Text style={s.label}>Lot ID</Text>
+        <TextInput style={s.input} placeholder="ID du lot certifié" placeholderTextColor={Colors.outline} value={lotId} onChangeText={setLotId} />
 
-        {/* Price */}
-        <Text style={s.label}>Prix (TND)</Text>
+        <Text style={s.label}>Titre du produit</Text>
+        <TextInput style={s.input} placeholder="Ex: Poulet Fermier Bio" placeholderTextColor={Colors.outline} value={title} onChangeText={setTitle} />
+
+        <Text style={s.label}>Catégorie</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, marginBottom: Spacing.sm }}>
+          {categories.map(c => (
+            <TouchableOpacity key={c} style={[s.chip, category === c && s.chipActive]} onPress={() => setCategory(c)}>
+              <Text style={[s.chipText, category === c && s.chipTextActive]}>{c}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={s.label}>Prix (TND/kg)</Text>
         <View style={s.priceRow}>
           <TextInput style={[s.input, { flex: 1 }]} placeholder="0.000" placeholderTextColor={Colors.outline} value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
           <Text style={s.priceSuffix}>TND / kg</Text>
         </View>
 
-        {/* Description */}
-        <Text style={s.label}>Description du produit</Text>
-        <TextInput style={[s.input, s.textarea]} placeholder="Décrivez votre produit pour les consommateurs..." placeholderTextColor={Colors.outline} value={desc} onChangeText={setDesc} multiline numberOfLines={4} textAlignVertical="top" />
+        <Text style={s.label}>Quantité disponible (kg)</Text>
+        <TextInput style={s.input} placeholder="Ex: 50" placeholderTextColor={Colors.outline} value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
 
-        {/* Blockchain info */}
+        <Text style={s.label}>Description</Text>
+        <TextInput style={[s.input, s.textarea]} placeholder="Décrivez votre produit..." placeholderTextColor={Colors.outline} value={desc} onChangeText={setDesc} multiline numberOfLines={4} textAlignVertical="top" />
+
         <View style={s.blockchainInfo}>
           <Text style={s.blockchainIcon}>🔗</Text>
-          <Text style={s.blockchainText}>Le produit sera lié à l'historique complet de traçabilité blockchain (prescriptions, retraits, certifications)</Text>
+          <Text style={s.blockchainText}>Le produit sera lié à la traçabilité blockchain complète</Text>
         </View>
 
-        <TouchableOpacity style={[s.submitBtn, !selected && { opacity: 0.5 }]} activeOpacity={0.85} onPress={() => router.back()} disabled={!selected}>
-          <Text style={s.submitText}>Publier sur le Marketplace</Text>
+        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.sm }}>⚠️ {error}</Text>}
+
+        <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.7 }]} activeOpacity={0.85} onPress={handlePublish} disabled={loading}>
+          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.submitText}>Publier sur le Marketplace</Text>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -93,4 +114,8 @@ const s = StyleSheet.create({
   blockchainText: { flex: 1, fontSize: 12, color: Colors.primary, lineHeight: 18 },
   submitBtn: { backgroundColor: Colors.primaryContainer, borderRadius: Radii.full, paddingVertical: 18, alignItems: 'center', marginTop: Spacing.xl, ...Shadows.glow(Colors.primaryContainer) },
   submitText: { fontSize: 17, fontWeight: '700', color: Colors.onPrimary },
+  chip: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.full, paddingHorizontal: 16, paddingVertical: 8 },
+  chipActive: { backgroundColor: Colors.primaryContainer },
+  chipText: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant },
+  chipTextActive: { color: Colors.onPrimary },
 });

@@ -67,6 +67,27 @@ router.post('/sale', authenticate, requireRole('PHARMACY'), validate(drugSaleSch
 });
 
 /**
+ * GET /api/drugs/sales
+ * List drug sales — Pharmacy sees own sales, others see all (capped at 50)
+ */
+router.get('/sales', authenticate, (req, res, next) => {
+    try {
+        const db = getDb();
+        let sales;
+        if (req.user.role === 'PHARMACY') {
+            sales = db.prepare(
+                'SELECT * FROM drug_sales_offchain WHERE pharmacy_id = ? ORDER BY created_at DESC LIMIT 50'
+            ).all(req.user.id);
+        } else {
+            sales = db.prepare(
+                'SELECT * FROM drug_sales_offchain ORDER BY created_at DESC LIMIT 50'
+            ).all();
+        }
+        res.json(success({ sales }));
+    } catch (e) { next(e); }
+});
+
+/**
  * GET /api/drugs/sale/:id
  * Get sale details — any authenticated user
  */

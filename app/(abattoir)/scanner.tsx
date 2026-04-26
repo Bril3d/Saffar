@@ -4,26 +4,38 @@
  */
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getEligibility } from '@/services/api';
 
 export default function ScannerScreen() {
-  const [manualCode, setManualCode] = useState('');
+  const [lotId, setLotId] = useState('');
+  const [rxId, setRxId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleScan = () => {
-    // Simulate — real app would use expo-camera
-    const isEligible = manualCode.endsWith('4') || manualCode.endsWith('6');
-    router.push(isEligible ? '/(abattoir)/result-eligible' : '/(abattoir)/result-rejected');
+  const handleScan = async () => {
+    if (!lotId.trim() || !rxId.trim()) { setError('Entrez le Lot ID et le Rx ID'); return; }
+    setError(''); setLoading(true);
+    try {
+      const res = await getEligibility(lotId.trim(), rxId.trim());
+      if (res.eligible) {
+        router.push({ pathname: '/(abattoir)/result-eligible', params: { lotId: res.lotId, rxId: rxId.trim(), daysRemaining: String(res.daysRemaining) } } as any);
+      } else {
+        router.push({ pathname: '/(abattoir)/result-rejected', params: { lotId: res.lotId, daysRemaining: String(res.daysRemaining) } } as any);
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message || e?.message || 'Erreur de vérification');
+    } finally { setLoading(false); }
   };
 
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="light" />
 
-      {/* Camera viewport placeholder */}
       <View style={s.cameraView}>
         <View style={s.scanFrame}>
           <View style={[s.corner, s.tl]} />
@@ -32,21 +44,21 @@ export default function ScannerScreen() {
           <View style={[s.corner, s.br]} />
         </View>
         <Text style={s.cameraText}>Placez le QR code dans le cadre</Text>
-
-        {/* Scan line animation placeholder */}
         <View style={s.scanLine} />
       </View>
 
-      {/* Bottom panel */}
       <View style={s.bottomPanel}>
-        <Text style={s.panelTitle}>Ou saisir manuellement</Text>
+        <Text style={s.panelTitle}>Saisie manuelle</Text>
         <View style={s.inputRow}>
-          <TextInput style={s.input} placeholder="Lot ID (ex: LOT-1234)" placeholderTextColor={Colors.outline} value={manualCode} onChangeText={setManualCode} />
-          <TouchableOpacity style={s.scanBtn} onPress={handleScan} activeOpacity={0.85}>
-            <Text style={s.scanBtnText}>Vérifier</Text>
-          </TouchableOpacity>
+          <TextInput style={[s.input, { flex: 1 }]} placeholder="Lot ID" placeholderTextColor={Colors.outline} value={lotId} onChangeText={setLotId} />
         </View>
-
+        <View style={[s.inputRow, { marginTop: Spacing.sm }]}>
+          <TextInput style={[s.input, { flex: 1 }]} placeholder="Rx ID (prescription)" placeholderTextColor={Colors.outline} value={rxId} onChangeText={setRxId} />
+        </View>
+        {!!error && <Text style={{ color: Colors.onErrorContainer, fontSize: 13, marginTop: Spacing.sm }}>⚠️ {error}</Text>}
+        <TouchableOpacity style={[s.scanBtn, { marginTop: Spacing.md }, loading && { opacity: 0.7 }]} onPress={handleScan} activeOpacity={0.85} disabled={loading}>
+          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.scanBtnText}>Vérifier l'éligibilité</Text>}
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} style={s.closeBtn}>
           <Text style={s.closeBtnText}>← Retour</Text>
         </TouchableOpacity>

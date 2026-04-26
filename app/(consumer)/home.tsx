@@ -3,47 +3,35 @@
  * Product grid, search, category filters, blockchain banner.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getProducts } from '@/services/api';
+import type { ProductResponse } from '@/services/types';
+import { useAuth } from '@/store/authStore';
 
 const categories = ['Tous', 'Poulets', 'Oeufs', 'Bovins', 'Ovins', 'Lait'];
 
-const products = [
-  { name: 'Poulet Fermier Bio', farm: 'Ferme El Baraka', price: '9.500', trust: 98, aware: 'Access' as const },
-  { name: 'Oeufs de Campagne', farm: 'Ferme Sidi Bou', price: '4.200', trust: 95, aware: 'Access' as const },
-  { name: 'Viande Bovine', farm: 'Ferme Al Waha', price: '25.000', trust: 92, aware: 'Watch' as const },
-  { name: 'Lait Frais', farm: 'Ferme Ennour', price: '2.800', trust: 97, aware: 'Access' as const },
-];
+const awareColors: Record<string, string> = { Access: Colors.aware.access, Watch: Colors.aware.watch, Reserve: Colors.aware.reserve };
 
-const awareColors = { Access: Colors.aware.access, Watch: Colors.aware.watch, Reserve: Colors.aware.reserve };
-
-function ProductCard({ name, farm, price, trust, aware }: typeof products[0]) {
+function ProductCard({ product }: { product: ProductResponse }) {
+  const trust = Math.round(product.avg_rating * 20) || 0;
   const trustColor = trust >= 90 ? Colors.status.certified : trust >= 70 ? Colors.status.withdrawal : Colors.status.rejected;
   return (
     <View style={styles.productCard}>
-      {/* Placeholder image */}
-      <View style={styles.productImage}>
-        <Text style={styles.productEmoji}>🥩</Text>
-      </View>
-      {/* Trust badge */}
-      <View style={[styles.trustBadge, { backgroundColor: trustColor }]}>
-        <Text style={styles.trustText}>{trust}</Text>
-      </View>
+      <View style={styles.productImage}><Text style={styles.productEmoji}>🥩</Text></View>
+      {trust > 0 && <View style={[styles.trustBadge, { backgroundColor: trustColor }]}><Text style={styles.trustText}>{trust}</Text></View>}
       <View style={styles.productContent}>
-        <Text style={styles.productName} numberOfLines={1}>{name}</Text>
-        <Text style={styles.productFarm} numberOfLines={1}>{farm}</Text>
+        <Text style={styles.productName} numberOfLines={1}>{product.title}</Text>
+        <Text style={styles.productFarm} numberOfLines={1}>{product.farmer_name}</Text>
         <View style={styles.productFooter}>
-          <Text style={styles.productPrice}>{price} TND</Text>
-          <View style={[styles.awareMini, { backgroundColor: awareColors[aware] + '18' }]}>
-            <Text style={[styles.awareMiniText, { color: awareColors[aware] }]}>{aware}</Text>
-          </View>
+          <Text style={styles.productPrice}>{product.price_per_unit.toFixed(3)} TND</Text>
         </View>
-        <TouchableOpacity style={styles.orderBtn} activeOpacity={0.85} onPress={() => router.push('/(consumer)/product-detail')}>
+        <TouchableOpacity style={styles.orderBtn} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(consumer)/product-detail', params: { id: product.id } } as any)}>
           <Text style={styles.orderBtnText}>Voir détails</Text>
         </TouchableOpacity>
       </View>
@@ -52,48 +40,48 @@ function ProductCard({ name, farm, price, trust, aware }: typeof products[0]) {
 }
 
 export default function ConsumerHomeScreen() {
+  const { user } = useAuth();
+  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCat, setSelectedCat] = useState(0);
+
+  useEffect(() => {
+    getProducts().then(r => setProducts(r.products || [])).catch(() => setProducts([])).finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Marketplace</Text>
-            <Text style={styles.headerSubtitle}>Produits certifiés blockchain</Text>
-          </View>
-          <View style={styles.avatar}><Text style={styles.avatarText}>C</Text></View>
+          <View><Text style={styles.headerTitle}>Marketplace</Text><Text style={styles.headerSubtitle}>Produits certifiés blockchain</Text></View>
+          <View style={styles.avatar}><Text style={styles.avatarText}>{user?.name?.[0] || 'C'}</Text></View>
         </View>
 
-        {/* Search */}
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput style={styles.searchInput} placeholder="Rechercher un produit..." placeholderTextColor={Colors.outline} />
-          <TouchableOpacity style={styles.locationChip}>
-            <Text style={styles.locationText}>📍 Tunis</Text>
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.locationChip}><Text style={styles.locationText}>📍 Tunis</Text></TouchableOpacity>
         </View>
 
-        {/* Blockchain banner */}
         <View style={styles.blockchainBanner}>
-          <Text style={styles.bannerIcon}>🔗</Text>
-          <Text style={styles.bannerText}>Tous les produits sont certifiés blockchain</Text>
-          <Text style={styles.bannerCheck}>✅</Text>
+          <Text style={styles.bannerIcon}>🔗</Text><Text style={styles.bannerText}>Tous les produits sont certifiés blockchain</Text><Text style={styles.bannerCheck}>✅</Text>
         </View>
 
-        {/* Categories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {categories.map((c, i) => (
-            <TouchableOpacity key={i} style={[styles.chip, i === 0 && styles.chipActive]}>
-              <Text style={[styles.chipText, i === 0 && styles.chipTextActive]}>{c}</Text>
+            <TouchableOpacity key={i} style={[styles.chip, selectedCat === i && styles.chipActive]} onPress={() => setSelectedCat(i)}>
+              <Text style={[styles.chipText, selectedCat === i && styles.chipTextActive]}>{c}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Product Grid */}
-        <View style={styles.productGrid}>
-          {products.map((p, i) => <ProductCard key={i} {...p} />)}
-        </View>
+        {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} /> :
+          products.length === 0 ? <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 30 }}>Aucun produit disponible</Text> :
+          <View style={styles.productGrid}>
+            {products.map((p) => <ProductCard key={p.id} product={p} />)}
+          </View>
+        }
       </ScrollView>
 
       {/* Tab Bar */}

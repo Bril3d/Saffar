@@ -3,36 +3,51 @@
  * Drug dropdown, farmer selector, diagnosis, posology, withdrawal days.
  */
 import React, { useState } from 'react';
+import { ActivityIndicator } from 'react-native';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { createPrescription } from '@/services/api';
 
 const drugs = [
   { name: 'Amoxicilline 500mg', atc: 'J01CA04', aware: 'Access', minWithdrawal: 5 },
   { name: 'Enrofloxacine 100mg', atc: 'J01MA90', aware: 'Watch', minWithdrawal: 14 },
   { name: 'Colistine 2MUI', atc: 'J01XB01', aware: 'Reserve', minWithdrawal: 7 },
 ];
-const farmers = ['Ferme El Baraka', 'Ferme Sidi Bou', 'Ferme Al Waha'];
+// Farmer ID input replaces the static list
 const awareColors = { Access: Colors.aware.access, Watch: Colors.aware.watch, Reserve: Colors.aware.reserve };
 
 export default function NewPrescriptionScreen() {
   const [selectedDrug, setSelectedDrug] = useState<number | null>(null);
-  const [selectedFarmer, setSelectedFarmer] = useState<string | null>(null);
+  const [saleId, setSaleId] = useState('');
+  const [farmerId, setFarmerId] = useState('');
   const [lotId, setLotId] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
+  const [dosage, setDosage] = useState('');
   const [withdrawalDays, setWithdrawalDays] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const drug = selectedDrug !== null ? drugs[selectedDrug] : null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!drug) { setError('Sélectionnez un médicament'); return; }
-    if (!selectedFarmer) { setError('Sélectionnez un éleveur'); return; }
+    if (!saleId.trim()) { setError('Entrez l\'ID de vente'); return; }
+    if (!farmerId.trim()) { setError('Entrez l\'ID de l\'éleveur'); return; }
+    if (!lotId.trim()) { setError('Entrez l\'ID du lot'); return; }
     if (Number(withdrawalDays) < (drug?.minWithdrawal || 0)) { setError(`Minimum ${drug.minWithdrawal} jours pour ${drug.name}`); return; }
-    setError('');
-    router.back();
+    setError(''); setLoading(true);
+    try {
+      await createPrescription({
+        saleId: saleId.trim(), farmerId: farmerId.trim(), animalLotId: lotId.trim(),
+        diagnosis: diagnosis.trim(), dosage: Number(dosage) || 1, withdrawalDays: Number(withdrawalDays),
+      });
+      router.back();
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message || e?.message || 'Erreur');
+    } finally { setLoading(false); }
   };
 
   return (
@@ -65,15 +80,13 @@ export default function NewPrescriptionScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* Farmer */}
-        <Text style={s.label}>Éleveur</Text>
-        <View style={s.chipRow}>
-          {farmers.map((f) => (
-            <TouchableOpacity key={f} style={[s.chip, selectedFarmer === f && s.chipActive]} onPress={() => setSelectedFarmer(f)}>
-              <Text style={[s.chipText, selectedFarmer === f && s.chipTextActive]}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Sale ID */}
+        <Text style={s.label}>ID de Vente</Text>
+        <TextInput style={s.input} placeholder="ID de la vente associée" placeholderTextColor={Colors.outline} value={saleId} onChangeText={setSaleId} />
+
+        {/* Farmer ID */}
+        <Text style={s.label}>ID Éleveur</Text>
+        <TextInput style={s.input} placeholder="ID de l'éleveur" placeholderTextColor={Colors.outline} value={farmerId} onChangeText={setFarmerId} />
 
         {/* Lot ID */}
         <Text style={s.label}>Identifiant du lot</Text>
@@ -82,6 +95,10 @@ export default function NewPrescriptionScreen() {
         {/* Diagnosis */}
         <Text style={s.label}>Diagnostic</Text>
         <TextInput style={[s.input, s.textarea]} placeholder="Décrivez les symptômes et le diagnostic..." placeholderTextColor={Colors.outline} value={diagnosis} onChangeText={setDiagnosis} multiline numberOfLines={3} textAlignVertical="top" />
+
+        {/* Dosage */}
+        <Text style={s.label}>Posologie (mg/kg)</Text>
+        <TextInput style={s.input} placeholder="Ex: 15" placeholderTextColor={Colors.outline} value={dosage} onChangeText={setDosage} keyboardType="numeric" />
 
         {/* Withdrawal */}
         <Text style={s.label}>Jours de retrait</Text>
@@ -92,9 +109,8 @@ export default function NewPrescriptionScreen() {
 
         {!!error && <View style={s.errorBox}><Text style={s.errorText}>⚠️ {error}</Text></View>}
 
-        <TouchableOpacity style={s.submitBtn} activeOpacity={0.85} onPress={handleSubmit}>
-          <Text style={s.submitIcon}>🔐</Text>
-          <Text style={s.submitText}>Confirmer la Prescription</Text>
+        <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.7 }]} activeOpacity={0.85} onPress={handleSubmit} disabled={loading}>
+          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <><Text style={s.submitIcon}>🔐</Text><Text style={s.submitText}>Confirmer la Prescription</Text></>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

@@ -1,48 +1,51 @@
 /**
- * Pharmacy — Sales History Screen
+ * Pharmacy — Sales History (dynamic from API)
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getRecentDrugSales } from '@/services/api';
+import type { DrugSaleResponse } from '@/services/types';
 
-const awareColors = { Access: Colors.aware.access, Watch: Colors.aware.watch, Reserve: Colors.aware.reserve };
-
-const sales = [
-  { id: 'V-2041', drug: 'Amoxicilline 500mg', vet: 'Dr. Ben Ali', date: '26 Avr', qty: 3, aware: 'Access' as const },
-  { id: 'V-2040', drug: 'Enrofloxacine 100mg', vet: 'Dr. Trabelsi', date: '25 Avr', qty: 1, aware: 'Watch' as const },
-  { id: 'V-2039', drug: 'Colistine 2MUI', vet: 'Dr. Mansouri', date: '24 Avr', qty: 2, aware: 'Reserve' as const },
-  { id: 'V-2038', drug: 'Amoxicilline 500mg', vet: 'Dr. Hamdi', date: '23 Avr', qty: 5, aware: 'Access' as const },
-  { id: 'V-2037', drug: 'Enrofloxacine 100mg', vet: 'Dr. Ben Ali', date: '22 Avr', qty: 1, aware: 'Watch' as const },
-];
+const aw: Record<string, string> = { Access: Colors.aware.access, Watch: Colors.aware.watch, Reserve: Colors.aware.reserve };
 
 export default function SalesScreen() {
+  const [sales, setSales] = useState<DrugSaleResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getRecentDrugSales().then(setSales).catch(() => setSales([])).finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>Historique des Ventes</Text>
-        <Text style={s.subtitle}>{sales.length} ventes ce mois</Text>
+        <Text style={s.subtitle}>{sales.length} ventes enregistrées</Text>
 
-        {sales.map((sale, i) => (
-          <View key={i} style={s.card}>
-            <View style={s.cardLeft}>
-              <Text style={s.saleId}>{sale.id}</Text>
-              <Text style={s.saleDrug}>{sale.drug}</Text>
-              <Text style={s.saleMeta}>{sale.vet} · x{sale.qty}</Text>
-            </View>
-            <View style={s.cardRight}>
-              <View style={[s.awareBadge, { backgroundColor: awareColors[sale.aware] + '18' }]}>
-                <Text style={[s.awareText, { color: awareColors[sale.aware] }]}>{sale.aware}</Text>
+        {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} /> :
+          sales.length === 0 ? <Text style={s.empty}>Aucune vente</Text> :
+          sales.map((sale, i) => (
+            <View key={sale.sale_id || i} style={s.card}>
+              <View style={s.cardLeft}>
+                <Text style={s.saleId}>{sale.sale_id?.slice(0, 12)}</Text>
+                <Text style={s.saleDrug}>{sale.atc_code} · x{sale.quantity}</Text>
+                <Text style={s.saleMeta}>Lot: {sale.batch_number}</Text>
               </View>
-              <Text style={s.saleDate}>{sale.date}</Text>
+              <View style={s.cardRight}>
+                <View style={[s.awareBadge, { backgroundColor: (aw[sale.aware_class] || Colors.outline) + '18' }]}>
+                  <Text style={[s.awareText, { color: aw[sale.aware_class] || Colors.outline }]}>{sale.aware_class}</Text>
+                </View>
+                <Text style={s.saleDate}>{new Date(sale.created_at).toLocaleDateString('fr-FR')}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        }
       </ScrollView>
 
-      {/* Tab Bar */}
       <View style={s.tabBar}>
         <TouchableOpacity style={s.tab} onPress={() => router.replace('/(pharmacy)/home')}><Text style={s.tabIcon}>🏠</Text><Text style={s.tabLabel}>Accueil</Text></TouchableOpacity>
         <TouchableOpacity style={s.tab}><Text style={s.tabIconActive}>📋</Text><Text style={s.tabLabelActive}>Ventes</Text></TouchableOpacity>
@@ -58,6 +61,7 @@ const s = StyleSheet.create({
   scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: 100 },
   title: { fontSize: 22, fontWeight: '800', color: Colors.onSurface },
   subtitle: { fontSize: 13, color: Colors.onSurfaceVariant, marginTop: 2, marginBottom: Spacing.lg },
+  empty: { fontSize: 14, color: Colors.onSurfaceVariant, textAlign: 'center', marginTop: 30 },
   card: { backgroundColor: Colors.surfaceContainerLowest, borderRadius: Radii.lg, padding: Spacing.md, marginBottom: Spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', ...Shadows.sm },
   cardLeft: { flex: 1 },
   saleId: { fontSize: 12, fontWeight: '700', color: Colors.onSurfaceVariant },
