@@ -7,9 +7,10 @@ const { closeDb } = require('./src/db/db');
 const { initVectorStore } = require('./src/ai/vectorStore');
 const { indexKnowledgeBase } = require('./src/ai/knowledgeIndexer');
 
+const { execSync } = require('child_process');
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, async () => {
+function onListening() {
     console.log(`
   ╔══════════════════════════════════════════╗
   ║     🌿 SAFAR Chain Backend v2.0.0       ║
@@ -35,6 +36,35 @@ const server = app.listen(PORT, async () => {
     } catch (e) {
         console.warn('[RAG] Vector store init failed:', e.message);
         console.warn('[RAG] RAG will use keyword fallback');
+    }
+}
+
+let retried = false;
+const server = app.listen(PORT);
+server.on('listening', onListening);
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && !retried) {
+        retried = true;
+        console.warn(`[SERVER] Port ${PORT} in use — killing stale process and retrying...`);
+        try {
+            // Windows: find and kill the PID holding this port
+            const result = execSync(
+                `cmd /c "for /f "tokens=5" %a in ('netstat -aon ^| findstr :${PORT} ^| findstr LISTENING') do @echo %a"`,
+                { encoding: 'utf-8', timeout: 5000 }
+            ).trim();
+            const pids = [...new Set(result.split(/\s+/).filter(Boolean))];
+            for (const pid of pids) {
+                if (pid !== String(process.pid)) {
+                    try { execSync(`taskkill /F /PID ${pid}`, { timeout: 3000 }); } catch {}
+                }
+            }
+        } catch {}
+        setTimeout(() => {
+            server.listen(PORT);
+        }, 1000);
+    } else {
+        console.error('[SERVER] Fatal error:', err.message);
+        process.exit(1);
     }
 });
 
