@@ -1,149 +1,152 @@
 /**
- * SAFAR Chain — Design System Tokens
- * Single source of truth for all visual properties.
- * Inspired by medtech/fintech precision. Dark-first.
+ * SAFAR Chain — "Emerald Trace" Design System
+ * Light theme · White/Green · Inter · Tonal Layering · No-Line Rule
  */
 
-export const colors = {
-  // ── Backgrounds ──
-  bg: {
-    primary: '#0C0F14',
-    secondary: '#141820',
-    tertiary: '#1C2230',
-    elevated: '#232A38',
-    input: '#171D28',
-  },
+import { Platform } from 'react-native';
 
-  // ── Borders ──
-  border: {
-    default: '#242C3B',
-    strong: '#3A4558',
-    focus: '#2ECC87',
-  },
+/* ── Color Tokens ─────────────────────────────────── */
 
-  // ── Text ──
-  text: {
-    primary: '#F0F2F5',
-    secondary: '#8B95A8',
-    tertiary: '#5C667A',
-    inverse: '#0C0F14',
-    link: '#5B8DEF',
-  },
+export const Colors = {
+  // Primary greens
+  primary: '#0d631b',
+  primaryContainer: '#2e7d32',
+  primaryFixed: '#a3f69c',
+  primaryFixedDim: '#88d982',
+  onPrimary: '#ffffff',
+  onPrimaryContainer: '#cbffc2',
 
-  // ── Brand ──
-  accent: {
-    primary: '#2ECC87',
-    primaryMuted: 'rgba(46,204,135,0.10)',
-    primarySubtle: 'rgba(46,204,135,0.06)',
-    blockchain: '#5B8DEF',
-    blockchainMuted: 'rgba(91,141,239,0.10)',
-  },
+  // Secondary greens
+  secondary: '#476644',
+  secondaryContainer: '#c6e9be',
+  onSecondary: '#ffffff',
+  onSecondaryContainer: '#4c6a48',
 
-  // ── AWaRe Classification ──
+  // Tertiary (accent)
+  tertiary: '#923357',
+  tertiaryContainer: '#b14b6f',
+
+  // Surfaces (tonal layering)
+  surface: '#f8faf8',
+  surfaceBright: '#f8faf8',
+  surfaceContainer: '#eceeec',
+  surfaceContainerHigh: '#e6e9e7',
+  surfaceContainerHighest: '#e1e3e1',
+  surfaceContainerLow: '#f2f4f2',
+  surfaceContainerLowest: '#ffffff',
+  surfaceDim: '#d8dad9',
+  surfaceTint: '#1b6d24',
+
+  // On-surface text
+  onSurface: '#191c1b',
+  onSurfaceVariant: '#40493d',
+  background: '#f8faf8',
+  onBackground: '#191c1b',
+
+  // Outlines (ghost borders only)
+  outline: '#707a6c',
+  outlineVariant: '#bfcaba',
+
+  // Error / status
+  error: '#ba1a1a',
+  errorContainer: '#ffdad6',
+  onError: '#ffffff',
+  onErrorContainer: '#93000a',
+
+  // AWaRe classification
   aware: {
-    access: '#2ECC87',
-    accessBg: 'rgba(46,204,135,0.10)',
-    watch: '#E8A838',
-    watchBg: 'rgba(232,168,56,0.10)',
-    reserve: '#E85454',
-    reserveBg: 'rgba(232,84,84,0.10)',
+    access: '#2e7d32',
+    watch: '#f9a825',
+    reserve: '#d32f2f',
   },
 
-  // ── Semantic ──
+  // Status colors
   status: {
-    success: '#2ECC87',
-    successBg: 'rgba(46,204,135,0.10)',
-    warning: '#E8A838',
-    warningBg: 'rgba(232,168,56,0.10)',
-    danger: '#E85454',
-    dangerBg: 'rgba(232,84,84,0.10)',
-    info: '#5B8DEF',
-    infoBg: 'rgba(91,141,239,0.10)',
+    certified: '#2e7d32',
+    withdrawal: '#f9a825',
+    pending: '#9e9e9e',
+    rejected: '#d32f2f',
   },
 
-  // ── Role Accents ──
-  role: {
-    pharmacy: '#2ECC87',
-    pharmacyBg: 'rgba(46,204,135,0.07)',
-    vet: '#5B8DEF',
-    vetBg: 'rgba(91,141,239,0.07)',
-    farmer: '#E8A838',
-    farmerBg: 'rgba(232,168,56,0.07)',
-    slaughterhouse: '#E85454',
-    slaughterhouseBg: 'rgba(232,84,84,0.07)',
-    consumer: '#9B8AEF',
-    consumerBg: 'rgba(155,138,239,0.07)',
-  },
-} as const;
+  // Inverse
+  inverseSurface: '#2e3130',
+  inverseOnSurface: '#eff1ef',
+  inversePrimary: '#88d982',
+};
 
-export const spacing = {
+/* ── Typography ───────────────────────────────────── */
+
+export const Fonts = Platform.select({
+  ios: {
+    sans: 'System',
+    serif: 'Georgia',
+    rounded: 'System',
+    mono: 'Menlo',
+  },
+  android: {
+    sans: 'Roboto',
+    serif: 'serif',
+    rounded: 'Roboto',
+    mono: 'monospace',
+  },
+  web: {
+    sans: "Inter, system-ui, -apple-system, sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    rounded: "Inter, system-ui, sans-serif",
+    mono: "'JetBrains Mono', SFMono-Regular, Menlo, monospace",
+  },
+});
+
+/* ── Spacing ──────────────────────────────────────── */
+
+export const Spacing = {
   xs: 4,
   sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
-  xxxl: 40,
-} as const;
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+};
 
-export const radii = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
-  full: 999,
-} as const;
+/* ── Border Radii (large, pill-like) ─────────────── */
 
-export const typography = {
-  display: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    letterSpacing: -0.5,
-    lineHeight: 34,
-    color: colors.text.primary,
+export const Radii = {
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  full: 9999,
+};
+
+/* ── Shadows (ambient, tinted) ───────────────────── */
+
+export const Shadows = {
+  sm: {
+    shadowColor: '#191c1b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '600' as const,
-    letterSpacing: -0.3,
-    lineHeight: 28,
-    color: colors.text.primary,
+  md: {
+    shadowColor: '#191c1b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  section: {
-    fontSize: 17,
-    fontWeight: '600' as const,
-    letterSpacing: 0,
-    lineHeight: 22,
-    color: colors.text.primary,
+  lg: {
+    shadowColor: '#191c1b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 40,
+    elevation: 8,
   },
-  body: {
-    fontSize: 15,
-    fontWeight: '400' as const,
-    letterSpacing: 0.1,
-    lineHeight: 22,
-    color: colors.text.secondary,
-  },
-  caption: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    letterSpacing: 0.2,
-    lineHeight: 18,
-    color: colors.text.tertiary,
-  },
-  overline: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    letterSpacing: 1.5,
-    lineHeight: 16,
-    color: colors.text.tertiary,
-    textTransform: 'uppercase' as const,
-  },
-  mono: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    letterSpacing: 0,
-    lineHeight: 18,
-    fontFamily: 'monospace',
-    color: colors.text.secondary,
-  },
-} as const;
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+  }),
+};

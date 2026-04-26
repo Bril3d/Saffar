@@ -1,121 +1,83 @@
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { create } from 'zustand';
+/**
+ * SAFAR Chain — Auth Store
+ * Simple reactive auth state with role-based access control.
+ * Uses React context (no external deps like Zustand needed for now).
+ */
 
-import { type Role } from '@/types/domain';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-type AuthSession = {
+export type Role = 'PHARMACY' | 'VET' | 'FARMER' | 'SLAUGHTERHOUSE' | 'CONSUMER';
+
+export interface AuthState {
   role: Role | null;
-  token: string | null;
   userId: string | null;
   walletAddress: string | null;
-};
+  token: string | null;
+  isAuthenticated: boolean;
+}
 
-type LoginCredentials = {
-  email?: string;
-  password?: string;
-  role: Role;
-};
+interface AuthContextType extends AuthState {
+  login: (role: Role, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  selectRole: (role: Role) => void;
+  selectedRole: Role | null;
+}
 
-type AuthState = AuthSession & {
-  hydrated: boolean;
-  hydrate: () => Promise<void>;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => Promise<void>;
-};
-
-const STORAGE_KEY = 'safar.auth.session';
-
-const EMPTY_SESSION: AuthSession = {
+const initialState: AuthState = {
   role: null,
-  token: null,
   userId: null,
   walletAddress: null,
+  token: null,
+  isAuthenticated: false,
 };
 
-const MOCK_USERS: Record<Role, Omit<AuthSession, 'role' | 'token'>> = {
-  PHARMACY: {
-    userId: 'pharmacy-001',
-    walletAddress: '0xPharmacyDemoWallet',
-  },
-  VET: {
-    userId: 'vet-001',
-    walletAddress: '0xVetDemoWallet',
-  },
-  FARMER: {
-    userId: 'farmer-001',
-    walletAddress: '0xFarmerDemoWallet',
-  },
-  SLAUGHTERHOUSE: {
-    userId: 'abattoir-001',
-    walletAddress: '0xAbattoirDemoWallet',
-  },
-  CONSUMER: {
-    userId: 'consumer-001',
-    walletAddress: null,
-  },
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function readSession() {
-  try {
-    const raw =
-      Platform.OS === 'web'
-        ? globalThis.localStorage?.getItem(STORAGE_KEY)
-        : await SecureStore.getItemAsync(STORAGE_KEY);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AuthState>(initialState);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
-    return raw ? (JSON.parse(raw) as AuthSession) : null;
-  } catch {
-    return null;
-  }
-}
+  const login = useCallback(async (role: Role, email: string, _password: string) => {
+    // Mock login for hackathon — in production, POST /api/auth/login
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-async function writeSession(session: AuthSession | null) {
-  try {
-    if (Platform.OS === 'web') {
-      if (session) {
-        globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(session));
-      } else {
-        globalThis.localStorage?.removeItem(STORAGE_KEY);
-      }
-      return;
-    }
-
-    if (session) {
-      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(session));
-    } else {
-      await SecureStore.deleteItemAsync(STORAGE_KEY);
-    }
-  } catch {
-    // Session persistence should never block a hackathon demo login.
-  }
-}
-
-export const useAuthStore = create<AuthState>((set) => ({
-  ...EMPTY_SESSION,
-  hydrated: false,
-  hydrate: async () => {
-    const session = await readSession();
-    set({ ...(session ?? EMPTY_SESSION), hydrated: true });
-  },
-  login: async ({ role }) => {
-    const mockUser = MOCK_USERS[role];
-    const session: AuthSession = {
-      ...mockUser,
+    setState({
       role,
-      token: `mock-jwt-${role.toLowerCase()}`,
-    };
+      userId: `user_${Date.now()}`,
+      walletAddress: `0x${Math.random().toString(16).slice(2, 42)}`,
+      token: `jwt_mock_${Date.now()}`,
+      isAuthenticated: true,
+    });
+  }, []);
 
-    set({ ...session, hydrated: true });
-    await writeSession(session);
-  },
-  logout: async () => {
-    set({ ...EMPTY_SESSION, hydrated: true });
-    await writeSession(null);
-  },
-}));
+  const logout = useCallback(() => {
+    setState(initialState);
+    setSelectedRole(null);
+  }, []);
 
-export function getAuthSnapshot() {
-  const { role, token, userId, walletAddress } = useAuthStore.getState();
+  const selectRole = useCallback((role: Role) => {
+    setSelectedRole(role);
+  }, []);
 
-  return { role, token, userId, walletAddress };
+  return React.createElement(
+    AuthContext.Provider,
+    {
+      value: {
+        ...state,
+        login,
+        logout,
+        selectRole,
+        selectedRole,
+      },
+    },
+    children
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return ctx;
 }
