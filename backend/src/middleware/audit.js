@@ -47,8 +47,8 @@ function logAudit(userId, userRole, action, resource, resourceId, req, details =
         lastAuditHash = chainHash;
 
         db.prepare(`
-            INSERT INTO audit_log (user_id, user_role, action, resource, resource_id, ip_address, user_agent, details, chain_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO audit_log (user_id, user_role, action, resource, resource_id, ip_address, user_agent, details, chain_hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             userId || 'anonymous',
             userRole || 'none',
@@ -58,7 +58,8 @@ function logAudit(userId, userRole, action, resource, resourceId, req, details =
             req.ip || req.connection?.remoteAddress || 'unknown',
             (req.headers['user-agent'] || 'unknown').slice(0, 200),
             details ? JSON.stringify(details) : null,
-            chainHash
+            chainHash,
+            timestamp
         );
     } catch (e) {
         // Audit logging should never crash the app
