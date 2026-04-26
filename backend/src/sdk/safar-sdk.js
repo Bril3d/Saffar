@@ -1,224 +1,319 @@
 // ============================================
-// SAFAR Chain — Blockchain SDK Mock Layer
-// Simulates smart contract interactions
-// SWAP THIS FOR REAL ethers.js CALLS WHEN
-// Dev 1 DELIVERS CONTRACTS
+// SAFAR Chain — Blockchain SDK (REAL ethers.js v6)
+// Connects to live Hardhat node via BLOCKCHAIN_RPC
+// Addresses & ABIs loaded from shared/contracts.json
 // ============================================
-const crypto = require('crypto');
+const { ethers } = require('ethers');
+const path = require('path');
+const fs = require('fs');
 
-// In-memory store for mock blockchain state
-const chainState = {
-    sales: new Map(),
-    prescriptions: new Map(),
-    certifications: new Map(),
-    saleCounter: 0,
-    rxCounter: 0
-};
+// ---- Load deployed contract metadata ----
+const CONTRACTS_PATH = path.join(__dirname, '..', '..', '..', 'shared', 'contracts.json');
 
-// Legal minimum withdrawal days per ATC code (mirrors DrugWithdrawalRegistry)
-const LEGAL_WITHDRAWAL_DAYS = {
-    'J01XB01': 7,   // Colistine
-    'J01CA04': 5,   // Amoxicilline
-    'J01AA07': 10,  // Tetracycline
-    'J01CE01': 5,   // Benzylpenicilline
-    'J01DB01': 7,   // Cefalexine
-    'J01FA01': 7,   // Erythromycine
-    'J01CR02': 7,   // Amoxicilline + Ac. clavulanique
-};
+let _contracts = null;
 
-function generateTxHash() {
-    return '0x' + crypto.randomBytes(32).toString('hex');
+function loadContracts() {
+    if (_contracts) return _contracts;
+    if (!fs.existsSync(CONTRACTS_PATH)) {
+        throw new Error(
+            `[SDK] contracts.json not found at ${CONTRACTS_PATH}.\n` +
+            `Run: npm run deploy:local  (from blockchain/contracts/)`
+        );
+    }
+    _contracts = JSON.parse(fs.readFileSync(CONTRACTS_PATH, 'utf-8'));
+    return _contracts;
 }
 
-function generateCertificateHash(lotId, timestamp) {
-    return '0x' + crypto.createHash('sha256')
-        .update(`${lotId}:${timestamp}:${crypto.randomBytes(16).toString('hex')}`)
-        .digest('hex');
+// ---- Provider & Relayer signer ----
+let _provider = null;
+let _relayer = null;
+
+function getProvider() {
+    if (!_provider) {
+        const rpc = process.env.BLOCKCHAIN_RPC || 'http://localhost:8545';
+        _provider = new ethers.JsonRpcProvider(rpc);
+    }
+    return _provider;
+}
+
+function getRelayer() {
+    if (!_relayer) {
+        const key = process.env.RELAYER_PRIVATE_KEY;
+        if (!key) throw new Error('[SDK] RELAYER_PRIVATE_KEY not set in .env');
+        _relayer = new ethers.Wallet(key, getProvider());
+    }
+    return _relayer;
+}
+
+// ---- Contract factory helpers ----
+function getContract(name, signerOrProvider) {
+    const meta = loadContracts();
+    const address = meta.addresses[name];
+    const abi = meta.abis[name];
+    if (!address || !abi) throw new Error(`[SDK] Contract '${name}' not found in contracts.json`);
+    return new ethers.Contract(address, abi, signerOrProvider || getProvider());
+}
+
+// ---- Hardhat account map (seeded by seed-demo.js) ----
+// Index 0 = admin/deployer, 1 = pharmacy, 2 = vet, 3 = farmer, 4 = slaughterhouse
+const HARDHAT_ACCOUNTS = [
+    '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // admin
+    '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // pharmacy
+    '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC', // vet
+    '0x90F79bf6EB2c4f870365E785982E1f101E93b906', // farmer
+    '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', // slaughterhouse
+];
+
+const HARDHAT_KEYS = [
+    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+    '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+    '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+    '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
+    '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a',
+];
+
+function getSignerForAddress(address) {
+    const idx = HARDHAT_ACCOUNTS.findIndex(a => a.toLowerCase() === address.toLowerCase());
+    if (idx === -1) throw new Error(`[SDK] No private key for address ${address}`);
+    return new ethers.Wallet(HARDHAT_KEYS[idx], getProvider());
+}
+
+// ====================================================
+// PUBLIC SDK API — mirrors mock interface exactly
+// ====================================================
+
+/**
+ * Register a drug sale on-chain (called by pharmacy)
+ */
+async function registerSale({ pharmacyAddress, vetAddress, atcCode, batchNumber, quantity, awareClass }) {
+    const signer = getSignerForAddress(pharmacyAddress);
+    const drugRegistry = getContract('drugRegistry', signer);
+
+    const tx = await drugRegistry.registerSale(vetAddress, atcCode, batchNumber, BigInt(quantity), awareClass);
+    const receipt = await tx.wait();
+
+    // Parse SaleRegistered event to get saleId
+    const iface = new ethers.Interface(loadContracts().abis.drugRegistry);
+    let saleId = null;
+    for (const log of receipt.logs) {
+        try {
+            const parsed = iface.parseLog(log);
+            if (parsed && parsed.name === 'SaleRegistered') {
+                saleId = parsed.args.saleId.toString();
+                break;
+            }
+        } catch {}
+    }
+
+    return { saleId, txHash: receipt.hash };
 }
 
 /**
- * Register a drug sale on the "blockchain"
+ * Get a drug sale from the chain
  */
-function registerSale({ pharmacyAddress, vetAddress, atcCode, batchNumber, quantity, awareClass }) {
-    chainState.saleCounter++;
-    const saleId = `SALE-${chainState.saleCounter}`;
-    const txHash = generateTxHash();
-    const sale = {
-        saleId,
-        pharmacy: pharmacyAddress,
-        veterinarian: vetAddress,
-        atcCode,
-        batchNumber,
-        quantity,
-        awareClass,
-        timestamp: Date.now(),
-        txHash
-    };
-    chainState.sales.set(saleId, sale);
-    return { saleId, txHash };
+async function getSale(saleId) {
+    const drugRegistry = getContract('drugRegistry');
+    try {
+        const sale = await drugRegistry.getSale(BigInt(saleId));
+        return {
+            saleId: saleId.toString(),
+            pharmacy: sale.pharmacy,
+            veterinarian: sale.veterinarian,
+            atcCode: sale.atcCode,
+            batchNumber: sale.batchNumber,
+            quantity: sale.quantity.toString(),
+            awareClass: sale.awareClass,
+            timestamp: sale.timestamp.toString(),
+            active: sale.active,
+        };
+    } catch {
+        return null;
+    }
 }
 
 /**
- * Get a drug sale from the "blockchain"
+ * Create a prescription on-chain (called by vet, relayed on behalf of vet)
+ * NOTE: saleId here is the on-chain numeric ID (string or number)
  */
-function getSale(saleId) {
-    return chainState.sales.get(saleId) || null;
-}
+async function createPrescription({ saleId, vetAddress, farmerAddress, animalLotId, diagnosis, dosage, withdrawalDays }) {
+    const signer = getSignerForAddress(vetAddress);
+    const prescriptionRegistry = getContract('prescriptionRegistry', signer);
 
-/**
- * Create a prescription on the "blockchain"
- * Enforces legal minimum withdrawal days (mirrors DrugWithdrawalRegistry)
- */
-function createPrescription({ saleId, vetAddress, farmerAddress, animalLotId, diagnosis, dosage, withdrawalDays }) {
-    const sale = chainState.sales.get(saleId);
-    if (!sale) throw new Error('Drug sale not found on chain');
-
-    // SECURITY: Enforce legal minimum withdrawal
-    const legalMin = LEGAL_WITHDRAWAL_DAYS[sale.atcCode] || 5;
-    const effectiveWithdrawal = Math.max(withdrawalDays || 0, legalMin);
-
-    chainState.rxCounter++;
-    const rxId = `RX-${chainState.rxCounter}`;
-    const txHash = generateTxHash();
-    const startDate = Date.now();
-    const withdrawalEnd = startDate + (effectiveWithdrawal * 24 * 60 * 60 * 1000);
-
-    const prescription = {
-        rxId,
-        drugSaleId: saleId,
-        veterinarian: vetAddress,
-        farmer: farmerAddress,
+    const tx = await prescriptionRegistry.createPrescription(
+        BigInt(saleId),
+        farmerAddress,
         animalLotId,
         diagnosis,
-        dosage,
-        startDate,
-        withdrawalDays: effectiveWithdrawal,
-        withdrawalEnd,
-        administered: false,
-        adminTimestamp: null,
-        txHash
+        BigInt(dosage),
+        BigInt(withdrawalDays || 0)
+    );
+    const receipt = await tx.wait();
+
+    // Parse PrescriptionCreated event for rxId and withdrawalEnd
+    const iface = new ethers.Interface(loadContracts().abis.prescriptionRegistry);
+    let rxId = null;
+    let withdrawalEnd = null;
+    for (const log of receipt.logs) {
+        try {
+            const parsed = iface.parseLog(log);
+            if (parsed && parsed.name === 'PrescriptionCreated') {
+                rxId = parsed.args.rxId.toString();
+                withdrawalEnd = new Date(Number(parsed.args.withdrawalEnd) * 1000).toISOString();
+                break;
+            }
+        } catch {}
+    }
+
+    // Derive effective withdrawal from on-chain data
+    const rx = await prescriptionRegistry.getPrescription(BigInt(rxId));
+    const effectiveWithdrawal = Number((rx.withdrawalEnd - rx.startDate) / BigInt(86400));
+
+    return { rxId, txHash: receipt.hash, withdrawalEnd, effectiveWithdrawal };
+}
+
+/**
+ * Confirm administration (called by farmer, relayed on behalf of farmer)
+ */
+async function confirmAdministration(rxId, farmerAddress) {
+    const signer = getSignerForAddress(farmerAddress);
+    const prescriptionRegistry = getContract('prescriptionRegistry', signer);
+
+    const tx = await prescriptionRegistry.confirmAdministration(BigInt(rxId));
+    const receipt = await tx.wait();
+
+    // Read updated prescription
+    const rx = await prescriptionRegistry.getPrescription(BigInt(rxId));
+    return {
+        confirmed: rx.administered,
+        txHash: receipt.hash,
+        adminTimestamp: new Date(Number(rx.adminTimestamp) * 1000).toISOString(),
     };
-    chainState.prescriptions.set(rxId, prescription);
-    return { rxId, txHash, withdrawalEnd: new Date(withdrawalEnd).toISOString(), effectiveWithdrawal };
 }
 
 /**
- * Confirm administration of a prescription
+ * Get a prescription from the chain
  */
-function confirmAdministration(rxId) {
-    const rx = chainState.prescriptions.get(rxId);
-    if (!rx) throw new Error('Prescription not found on chain');
-    if (rx.administered) throw new Error('Already administered');
-
-    rx.administered = true;
-    rx.adminTimestamp = Date.now();
-    const txHash = generateTxHash();
-    return { confirmed: true, txHash, adminTimestamp: new Date(rx.adminTimestamp).toISOString() };
+async function getPrescription(rxId) {
+    const prescriptionRegistry = getContract('prescriptionRegistry');
+    try {
+        const rx = await prescriptionRegistry.getPrescription(BigInt(rxId));
+        return {
+            rxId: rxId.toString(),
+            drugSaleId: rx.drugSaleId.toString(),
+            veterinarian: rx.veterinarian,
+            farmer: rx.farmer,
+            animalLotId: rx.animalLotId,
+            diagnosis: rx.diagnosis,
+            dosage: rx.dosage.toString(),
+            startDate: rx.startDate.toString(),
+            withdrawalEnd: rx.withdrawalEnd.toString(),
+            administered: rx.administered,
+            adminTimestamp: rx.adminTimestamp.toString(),
+        };
+    } catch {
+        return null;
+    }
 }
 
 /**
- * Get a prescription from the "blockchain"
+ * Check lot eligibility for slaughter (read-only, any caller)
  */
-function getPrescription(rxId) {
-    return chainState.prescriptions.get(rxId) || null;
+async function checkEligibility(animalLotId, rxId) {
+    const slaughterGate = getContract('slaughterGate');
+    try {
+        const result = await slaughterGate.checkEligibility(animalLotId, BigInt(rxId));
+        return {
+            eligible: result[0],
+            daysRemaining: Number(result[1]),
+        };
+    } catch (e) {
+        return { eligible: false, daysRemaining: -1, message: e.message };
+    }
 }
 
 /**
- * Check lot eligibility for slaughter
- * Returns eligible = true if withdrawal period has passed
+ * Certify a lot as eligible (called by slaughterhouse)
  */
-function checkEligibility(animalLotId) {
-    // Find all prescriptions for this lot
-    const prescriptions = [];
-    for (const rx of chainState.prescriptions.values()) {
-        if (rx.animalLotId === animalLotId) {
-            prescriptions.push(rx);
-        }
+async function certifyLot(animalLotId, rxId, slaughterhouseAddress) {
+    const signer = getSignerForAddress(slaughterhouseAddress);
+    const slaughterGate = getContract('slaughterGate', signer);
+
+    const tx = await slaughterGate.certifyLot(animalLotId, BigInt(rxId));
+    const receipt = await tx.wait();
+
+    // Parse LotCertified event
+    const iface = new ethers.Interface(loadContracts().abis.slaughterGate);
+    let certificateHash = null;
+    for (const log of receipt.logs) {
+        try {
+            const parsed = iface.parseLog(log);
+            if (parsed && parsed.name === 'LotCertified') {
+                certificateHash = parsed.args.certificateHash;
+                break;
+            }
+        } catch {}
     }
 
-    if (prescriptions.length === 0) {
-        return { eligible: true, daysRemaining: 0, message: 'No treatments recorded for this lot' };
-    }
-
-    // Check all prescriptions — lot is only eligible if ALL withdrawal periods have passed
-    const now = Date.now();
-    let maxWithdrawalEnd = 0;
-    for (const rx of prescriptions) {
-        if (!rx.administered) {
-            return { eligible: false, daysRemaining: -1, message: 'Treatment not yet administered' };
-        }
-        if (rx.withdrawalEnd > maxWithdrawalEnd) {
-            maxWithdrawalEnd = rx.withdrawalEnd;
-        }
-    }
-
-    const eligible = now >= maxWithdrawalEnd;
-    const daysRemaining = eligible ? 0 : Math.ceil((maxWithdrawalEnd - now) / (24 * 60 * 60 * 1000));
-
-    return { eligible, daysRemaining, withdrawalEnd: new Date(maxWithdrawalEnd).toISOString() };
+    return { certificateHash, txHash: receipt.hash };
 }
 
 /**
- * Certify a lot as eligible for slaughter
+ * Verify a certificate hash (read-only)
  */
-function certifyLot(animalLotId, slaughterhouseAddress) {
-    const eligibility = checkEligibility(animalLotId);
-    if (!eligibility.eligible) {
-        throw new Error(`Lot not eligible. ${eligibility.daysRemaining} days remaining`);
-    }
+async function verifyCertificate(certificateHash) {
+    const slaughterGate = getContract('slaughterGate');
+    const valid = await slaughterGate.verifyCertificate(certificateHash);
+    return { valid };
+}
 
-    const txHash = generateTxHash();
-    const certificateHash = generateCertificateHash(animalLotId, Date.now());
-
-    const certification = {
-        animalLotId,
-        slaughterhouse: slaughterhouseAddress,
-        eligible: true,
-        timestamp: Date.now(),
-        certificateHash,
-        txHash
+/**
+ * Get full lot traceability (read-only)
+ */
+async function getLotVerification(animalLotId) {
+    const slaughterGate = getContract('slaughterGate');
+    const v = await slaughterGate.getLotVerification(animalLotId);
+    return {
+        animalLotId: v.animalLotId,
+        slaughterhouse: v.slaughterhouse,
+        eligible: v.eligible,
+        timestamp: v.timestamp.toString(),
+        certificateHash: v.certificateHash,
     };
-    chainState.certifications.set(animalLotId, certification);
-    return { certificateHash, txHash };
 }
 
 /**
- * Verify a certificate hash
+ * Get on-chain role for an address
  */
-function verifyCertificate(certificateHash) {
-    for (const cert of chainState.certifications.values()) {
-        if (cert.certificateHash === certificateHash) {
-            return { valid: true, certification: cert };
-        }
-    }
-    return { valid: false };
+async function getRole(address) {
+    const accessControl = getContract('accessControl');
+    const role = await accessControl.getRole(address);
+    const ROLE_NAMES = ['NONE', 'PHARMACY', 'VETERINARIAN', 'FARMER', 'SLAUGHTERHOUSE', 'ADMIN'];
+    return ROLE_NAMES[Number(role)] || 'UNKNOWN';
 }
 
 /**
- * Get full chain state for a lot (used for traceability)
+ * Health-check: ping the chain
  */
-function getLotTraceability(animalLotId) {
-    const prescriptions = [];
-    for (const rx of chainState.prescriptions.values()) {
-        if (rx.animalLotId === animalLotId) {
-            const sale = chainState.sales.get(rx.drugSaleId);
-            prescriptions.push({ prescription: rx, drugSale: sale });
-        }
-    }
-    const certification = chainState.certifications.get(animalLotId) || null;
-    return { prescriptions, certification };
+async function ping() {
+    const provider = getProvider();
+    const block = await provider.getBlockNumber();
+    return { connected: true, latestBlock: block };
 }
 
-/**
- * Reset chain state (for testing)
- */
+// Reset not applicable for real chain — kept for API compat
 function resetChainState() {
-    chainState.sales.clear();
-    chainState.prescriptions.clear();
-    chainState.certifications.clear();
-    chainState.saleCounter = 0;
-    chainState.rxCounter = 0;
+    console.warn('[SDK] resetChainState() is a no-op on the real chain');
 }
+
+// Legacy LEGAL_WITHDRAWAL_DAYS (mirrors DrugWithdrawalRegistry) for local reference only
+const LEGAL_WITHDRAWAL_DAYS = {
+    'J01XB01': 7,
+    'J01CA04': 5,
+    'J01AA07': 10,
+    'J01FA01': 7,
+    'J01DC02': 5,
+    'J01EE01': 10,
+};
 
 module.exports = {
     registerSale,
@@ -229,7 +324,12 @@ module.exports = {
     checkEligibility,
     certifyLot,
     verifyCertificate,
-    getLotTraceability,
+    getLotVerification,
+    getRole,
+    ping,
     resetChainState,
-    LEGAL_WITHDRAWAL_DAYS
+    LEGAL_WITHDRAWAL_DAYS,
+    HARDHAT_ACCOUNTS,
+    getProvider,
+    getRelayer,
 };

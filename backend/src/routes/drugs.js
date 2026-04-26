@@ -11,7 +11,6 @@ const { validate } = require('../middleware/validate');
 const { success, error } = require('../utils/response');
 const { getDb } = require('../db/db');
 const sdk = require('../sdk/safar-sdk');
-const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
@@ -27,7 +26,7 @@ const drugSaleSchema = z.object({
  * POST /api/drugs/sale
  * Register a drug sale — Pharmacy only
  */
-router.post('/sale', authenticate, requireRole('PHARMACY'), validate(drugSaleSchema), (req, res, next) => {
+router.post('/sale', authenticate, requireRole('PHARMACY'), validate(drugSaleSchema), async (req, res, next) => {
     try {
         const { vetId, atcCode, batchNumber, quantity, awareClass } = req.body;
         const db = getDb();
@@ -39,10 +38,10 @@ router.post('/sale', authenticate, requireRole('PHARMACY'), validate(drugSaleSch
             return res.status(404).json(err.responseBody);
         }
 
-        // Register on chain
-        const chainResult = sdk.registerSale({
-            pharmacyAddress: req.user.walletAddress || req.user.id,
-            vetAddress: vet.wallet_address || vet.id,
+        // Register on chain (async — real ethers.js call)
+        const chainResult = await sdk.registerSale({
+            pharmacyAddress: req.user.walletAddress,
+            vetAddress: vet.wallet_address,
             atcCode,
             batchNumber,
             quantity,
@@ -71,7 +70,7 @@ router.post('/sale', authenticate, requireRole('PHARMACY'), validate(drugSaleSch
  * GET /api/drugs/sale/:id
  * Get sale details — any authenticated user
  */
-router.get('/sale/:id', authenticate, (req, res, next) => {
+router.get('/sale/:id', authenticate, async (req, res, next) => {
     try {
         const db = getDb();
         const sale = db.prepare('SELECT * FROM drug_sales_offchain WHERE sale_id = ?').get(req.params.id);
@@ -82,13 +81,15 @@ router.get('/sale/:id', authenticate, (req, res, next) => {
         }
 
         // Also get on-chain data
-        const chainData = sdk.getSale(req.params.id);
+        const chainData = await sdk.getSale(req.params.id);
 
         res.json(success({
             ...sale,
             chainData: chainData ? {
                 timestamp: chainData.timestamp,
-                txHash: chainData.txHash
+                active: chainData.active,
+                pharmacy: chainData.pharmacy,
+                veterinarian: chainData.veterinarian
             } : null
         }));
     } catch (e) {
