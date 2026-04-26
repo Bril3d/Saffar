@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
-import { Card, PageHeader, PrimaryButton, Screen, TextField } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Screen, SectionTitle, TextField } from '@/components/app-ui';
+import { colors, spacing, typography } from '@/constants/theme';
 import { confirmPrescription, getPrescription } from '@/services/api';
 import { type Prescription } from '@/services/mockData';
 import { enqueue, processQueue } from '@/services/offlineQueue';
@@ -27,9 +28,7 @@ export default function ConfirmAdminScreen() {
   }, []);
 
   const submit = async () => {
-    if (!prescription) {
-      return;
-    }
+    if (!prescription) return;
 
     if (administeredAt < prescription.prescriptionDate) {
       setMessage('La date doit etre apres la prescription.');
@@ -52,7 +51,7 @@ export default function ConfirmAdminScreen() {
   if (!prescription) {
     return (
       <Screen>
-        <PageHeader title="Chargement prescription" />
+        <PageHeader title="Chargement..." />
       </Screen>
     );
   }
@@ -60,30 +59,73 @@ export default function ConfirmAdminScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Offline-first"
-        subtitle="Si le reseau tombe, la confirmation est mise en file SQLite."
+        eyebrow="ELEVEUR"
+        subtitle="Si le reseau tombe, la confirmation est mise en file locale."
         title="Confirmer administration"
       />
 
-      <Card tone="amber">
-        <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>
-          Prescription {prescription.id}
-        </Text>
-        <AWaReBadge awareClass={prescription.awareClass} />
-        <Text style={{ color: '#475569' }}>Lot {prescription.animalLotId}</Text>
-        <Text style={{ color: '#475569' }}>Diagnostic: {prescription.diagnosis}</Text>
-        <Text style={{ color: '#475569' }}>Prescription: {prescription.prescriptionDate}</Text>
+      <Card tone="warning">
+        <View style={styles.headerRow}>
+          <Text style={styles.rxId}>Prescription {prescription.id}</Text>
+          <AWaReBadge awareClass={prescription.awareClass} />
+        </View>
+        <Divider />
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Lot</Text>
+          <Text style={styles.detailValue}>{prescription.animalLotId}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Diagnostic</Text>
+          <Text style={styles.detailValue}>{prescription.diagnosis}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Date prescription</Text>
+          <Text style={styles.detailValue}>{prescription.prescriptionDate}</Text>
+        </View>
+        <Divider />
         <TextField label="Date administration" onChangeText={setAdministeredAt} value={administeredAt} />
         <TextField
           label="Notes optionnelles"
           multiline
           onChangeText={setNotes}
-          style={{ minHeight: 82, textAlignVertical: 'top' }}
+          style={styles.textarea}
           value={notes}
         />
-        {message ? <Text style={{ color: '#166534', fontWeight: '800' }}>{message}</Text> : null}
-        <PrimaryButton onPress={submit}>Confirmer administration</PrimaryButton>
+        {message ? <Text style={styles.messageText}>{message}</Text> : null}
+        <Button onPress={submit}>Confirmer administration</Button>
       </Card>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  detail: {
+    gap: spacing.xs,
+  },
+  detailLabel: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+  },
+  detailValue: {
+    ...typography.body,
+    color: colors.text.primary,
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  messageText: {
+    ...typography.caption,
+    color: colors.status.success,
+    fontWeight: '600',
+  },
+  rxId: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  textarea: {
+    minHeight: 82,
+    textAlignVertical: 'top',
+  },
+});

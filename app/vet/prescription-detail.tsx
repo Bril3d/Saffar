@@ -1,10 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { BlockchainHash } from '@/components/BlockchainHash';
-import { Card, PageHeader, Screen, StatusChip } from '@/components/app-ui';
+import { Card, Divider, PageHeader, Screen, SectionTitle, StatusChip } from '@/components/app-ui';
 import { Timeline } from '@/components/Timeline';
+import { colors, spacing, typography } from '@/constants/theme';
 import { prescriptions } from '@/services/mockData';
 
 export default function PrescriptionDetailScreen() {
@@ -14,25 +15,40 @@ export default function PrescriptionDetailScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Lecture seule"
+        eyebrow="LECTURE SEULE"
         subtitle="Tous les champs critiques sont verrouilles apres emission."
         title={`Prescription ${prescription.id}`}
       />
 
-      <Card tone={prescription.status === 'WITHDRAWAL' ? 'amber' : 'green'}>
-        <Text style={{ color: '#0f172a', fontSize: 17, fontWeight: '900' }}>
-          Lot {prescription.animalLotId}
-        </Text>
-        <AWaReBadge awareClass={prescription.awareClass} />
-        <StatusChip label={prescription.status} tone={prescription.status === 'WITHDRAWAL' ? 'amber' : 'green'} />
-        <Text style={{ color: '#475569' }}>Diagnostic: {prescription.diagnosis}</Text>
-        <Text style={{ color: '#475569' }}>Posologie: {prescription.dosage}</Text>
-        <Text style={{ color: '#475569' }}>
-          Retrait: {prescription.withdrawalDays} jours, fin {prescription.withdrawalEnd}
-        </Text>
+      <Card tone={prescription.status === 'WITHDRAWAL' ? 'warning' : 'success'}>
+        <View style={styles.row}>
+          <Text style={styles.lotTitle}>Lot {prescription.animalLotId}</Text>
+          <AWaReBadge awareClass={prescription.awareClass} />
+        </View>
+        <StatusChip
+          label={prescription.status}
+          tone={prescription.status === 'WITHDRAWAL' ? 'warning' : 'success'}
+        />
+        <Divider />
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Diagnostic</Text>
+          <Text style={styles.detailValue}>{prescription.diagnosis}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Posologie</Text>
+          <Text style={styles.detailValue}>{prescription.dosage}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Retrait</Text>
+          <Text style={styles.detailValue}>
+            {prescription.withdrawalDays} jours — fin {prescription.withdrawalEnd}
+          </Text>
+        </View>
+        <Divider />
         <BlockchainHash hash={prescription.txHash} />
       </Card>
 
+      <SectionTitle>Parcours</SectionTitle>
       <Card>
         <Timeline
           steps={[
@@ -46,3 +62,26 @@ export default function PrescriptionDetailScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  detail: {
+    gap: spacing.xs,
+  },
+  detailLabel: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+  },
+  detailValue: {
+    ...typography.body,
+    color: colors.text.primary,
+  },
+  lotTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+});

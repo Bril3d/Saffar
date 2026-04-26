@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PageHeader, PrimaryButton, Screen, SectionTitle, StatusChip } from '@/components/app-ui';
+import { Button, Card, PageHeader, Screen, SectionTitle, StatusChip } from '@/components/app-ui';
+import { colors, typography } from '@/constants/theme';
 import { getFarmerOrders } from '@/services/api';
 import { type Order } from '@/services/mockData';
 
@@ -17,22 +18,44 @@ export default function ConsumerOrdersScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Mes commandes"
+        eyebrow="CONSOMMATEUR"
         subtitle="Statuts synchronises avec le backend marketplace."
-        title="Commandes"
+        title="Mes commandes"
       />
 
-      <PrimaryButton onPress={refresh}>Rafraichir</PrimaryButton>
+      <Button variant="secondary" onPress={refresh}>Rafraichir</Button>
+
       <SectionTitle>Historique</SectionTitle>
       {orders.map((order) => (
-        <Card key={order.id} tone={order.status === 'DELIVERED' ? 'green' : 'blue'}>
-          <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>{order.productTitle}</Text>
-          <Text style={{ color: '#475569' }}>
-            Quantite {order.quantity} - total {order.total} TND
+        <Card key={order.id} tone={order.status === 'DELIVERED' ? 'success' : 'info'}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{order.productTitle}</Text>
+            <StatusChip
+              label={order.status}
+              tone={order.status === 'PENDING' ? 'warning' : 'success'}
+            />
+          </View>
+          <Text style={styles.cardBody}>
+            Quantite {order.quantity} — total {order.total} TND
           </Text>
-          <StatusChip label={order.status} tone={order.status === 'PENDING' ? 'amber' : 'green'} />
         </Card>
       ))}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  cardBody: {
+    ...typography.body,
+  },
+  cardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+    flex: 1,
+  },
+});

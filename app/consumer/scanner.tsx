@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { Card, PageHeader, PrimaryButton, Screen } from '@/components/app-ui';
+import { Button, Card, PageHeader, Screen } from '@/components/app-ui';
+import { colors, radii, spacing, typography } from '@/constants/theme';
 
 function decodeLotId(data: string) {
   return data.match(/L-\d+/i)?.[0].toUpperCase() ?? data.trim();
@@ -14,10 +15,7 @@ export default function ConsumerScannerScreen() {
   const [scanned, setScanned] = useState(false);
 
   const handleScan = ({ data }: BarcodeScanningResult) => {
-    if (scanned) {
-      return;
-    }
-
+    if (scanned) return;
     setScanned(true);
     router.replace({ pathname: '/consumer/traceability', params: { lotId: decodeLotId(data) } });
   };
@@ -25,7 +23,7 @@ export default function ConsumerScannerScreen() {
   if (!permission) {
     return (
       <Screen>
-        <ActivityIndicator color="#166534" />
+        <ActivityIndicator color={colors.accent.primary} />
       </Screen>
     );
   }
@@ -34,9 +32,9 @@ export default function ConsumerScannerScreen() {
     return (
       <Screen>
         <PageHeader title="Autoriser camera" />
-        <Card tone="amber">
+        <Card tone="warning">
           <Text style={styles.copy}>La camera est necessaire pour scanner le QR produit.</Text>
-          <PrimaryButton onPress={requestPermission}>Autoriser</PrimaryButton>
+          <Button onPress={requestPermission}>Autoriser</Button>
         </Card>
       </Screen>
     );
@@ -59,26 +57,25 @@ export default function ConsumerScannerScreen() {
 
 const styles = StyleSheet.create({
   copy: {
-    color: '#ffffff',
-    lineHeight: 20,
+    ...typography.body,
+    color: colors.text.primary,
   },
   fullscreen: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bg.primary,
     flex: 1,
   },
   overlay: {
-    backgroundColor: '#00000099',
-    borderRadius: 8,
+    backgroundColor: 'rgba(12,15,20,0.85)',
+    borderRadius: radii.lg,
     bottom: 32,
-    gap: 8,
-    left: 20,
-    padding: 16,
+    gap: spacing.sm,
+    left: spacing.xl,
+    padding: spacing.lg,
     position: 'absolute',
-    right: 20,
+    right: spacing.xl,
   },
   title: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '900',
+    ...typography.title,
+    color: colors.text.primary,
   },
 });

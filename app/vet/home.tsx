@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
-import { Card, PageHeader, PrimaryButton, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
+import { AIAssistantCard } from '@/components/AIAssistantCard';
 import { Timeline } from '@/components/Timeline';
+import { colors, typography } from '@/constants/theme';
 import { prescriptions } from '@/services/mockData';
 import { useAuthStore } from '@/store/authStore';
 
@@ -18,33 +20,35 @@ export default function VetHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Role VET"
+        eyebrow="VETERINAIRE"
         subtitle="Prescriptions actives, delais de retrait et aide IA locale."
-        title="Veterinaire"
+        title="Tableau de bord"
       />
 
       <Row>
-        <Stat label="Prescriptions actives" tone="amber" value="8" />
-        <Stat label="Fermes suivies" tone="green" value="17" />
-        <Stat label="Doses restantes" tone="blue" value="320" />
+        <Stat label="Prescriptions" tone="warning" value="8" />
+        <Stat label="Fermes suivies" tone="success" value="17" />
+        <Stat label="Doses restantes" tone="info" value="320" />
       </Row>
 
-      <PrimaryButton onPress={() => router.push('/vet/new-prescription')}>
+      <Button onPress={() => router.push('/vet/new-prescription')}>
         Nouvelle prescription
-      </PrimaryButton>
+      </Button>
 
-      <SectionTitle>Prescriptions</SectionTitle>
+      <AIAssistantCard />
+
+      <SectionTitle>Prescriptions actives</SectionTitle>
       {prescriptions.map((prescription) => (
         <Card
           key={prescription.id}
-          tone={prescription.status === 'WITHDRAWAL' ? 'amber' : 'green'}>
-          <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>
-            Lot {prescription.animalLotId}
-          </Text>
-          <AWaReBadge awareClass={prescription.awareClass} />
+          tone={prescription.status === 'WITHDRAWAL' ? 'warning' : 'success'}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Lot {prescription.animalLotId}</Text>
+            <AWaReBadge awareClass={prescription.awareClass} />
+          </View>
           <StatusChip
             label={prescription.status}
-            tone={prescription.status === 'WITHDRAWAL' ? 'amber' : 'green'}
+            tone={prescription.status === 'WITHDRAWAL' ? 'warning' : 'success'}
           />
           <Timeline
             steps={[
@@ -52,16 +56,30 @@ export default function VetHomeScreen() {
               { detail: 'Administration en attente eleveur', status: 'active', title: 'ADMINISTERED' },
             ]}
           />
-          <PrimaryButton
+          <Button
+            variant="secondary"
             onPress={() =>
               router.push({ pathname: '/vet/prescription-detail', params: { id: prescription.id } })
             }>
-            Ouvrir
-          </PrimaryButton>
+            Ouvrir le detail
+          </Button>
         </Card>
       ))}
 
-      <PrimaryButton onPress={signOut}>Se deconnecter</PrimaryButton>
+      <Divider />
+      <Button variant="ghost" onPress={signOut}>Se deconnecter</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  cardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+});

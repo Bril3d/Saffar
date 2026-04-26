@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { BlockchainHash } from '@/components/BlockchainHash';
 import { TrustScore } from '@/components/TrustScore';
-import { Card, PageHeader, PrimaryButton, Row, Screen, StatusChip } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Screen, SectionTitle, StatusChip } from '@/components/app-ui';
 import { Timeline } from '@/components/Timeline';
+import { colors, spacing, typography } from '@/constants/theme';
 import { getTraceability } from '@/services/api';
 import { type AwareClass } from '@/types/domain';
 
@@ -32,7 +33,7 @@ export default function TraceabilityScreen() {
   if (!trace) {
     return (
       <Screen>
-        <PageHeader title="Chargement tracabilite" />
+        <PageHeader title="Chargement..." />
       </Screen>
     );
   }
@@ -40,25 +41,23 @@ export default function TraceabilityScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Verification publique"
-        subtitle="Vue volontairement filtree: aucun nom veterinaire, dosage exact ou adresse wallet."
+        eyebrow="VERIFICATION PUBLIQUE"
+        subtitle="Vue filtree: aucun nom veterinaire, dosage exact ou adresse wallet."
         title="Tracabilite"
       />
 
-      <Card tone="green">
-        <StatusChip label="Blockchain verifiee" tone="green" />
+      <Card tone="success">
+        <StatusChip label="Blockchain verifiee" tone="success" />
         <BlockchainHash hash={trace.txHash} />
-        <Row>
-          <TrustScore value={trace.trustScore} />
-          <Card>
-            <Text style={{ color: '#0f172a', fontWeight: '900' }}>{trace.productTitle}</Text>
-            <Text style={{ color: '#475569' }}>Origine region: {trace.farmRegion}</Text>
-            <AWaReBadge awareClass={trace.antibioticClass} />
-          </Card>
-        </Row>
+        <TrustScore value={trace.trustScore} />
+        <Divider />
+        <Text style={styles.productTitle}>{trace.productTitle}</Text>
+        <Text style={styles.region}>Origine: {trace.farmRegion}</Text>
+        <AWaReBadge awareClass={trace.antibioticClass} />
       </Card>
 
-      <Card tone="blue">
+      <SectionTitle>Parcours du lot</SectionTitle>
+      <Card>
         <Timeline
           steps={[
             {
@@ -82,17 +81,35 @@ export default function TraceabilityScreen() {
         />
       </Card>
 
-      <Card tone="blue">
-        <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>Explication IA locale</Text>
-        <Text style={{ color: '#475569', lineHeight: 21 }}>
+      <Card tone="info">
+        <Text style={styles.explainTitle}>Explication IA</Text>
+        <Text style={styles.explainBody}>
           Ce produit est sur car son lot a respecte la periode de retrait avant certification. La
           tracabilite publique garde seulement les informations utiles a votre decision.
         </Text>
       </Card>
 
-      <PrimaryButton onPress={() => router.push({ pathname: '/consumer/checkout', params: { lotId: trace.lotId } })}>
+      <Button onPress={() => router.push({ pathname: '/consumer/checkout', params: { lotId: trace.lotId } })}>
         Commander ce produit
-      </PrimaryButton>
+      </Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  explainBody: {
+    ...typography.body,
+  },
+  explainTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  productTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  region: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+  },
+});

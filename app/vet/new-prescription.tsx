@@ -1,11 +1,12 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { AIAssistantCard } from '@/components/AIAssistantCard';
 import { AWaReBadge } from '@/components/AWaReBadge';
-import { Card, PageHeader, PrimaryButton, Screen, SegmentedControl, TextField } from '@/components/app-ui';
+import { Button, Card, PageHeader, Screen, SectionTitle, SegmentedControl, TextField } from '@/components/app-ui';
+import { colors, typography } from '@/constants/theme';
 import { createPrescription, getVetDrugSales } from '@/services/api';
 import { type DrugSale } from '@/services/mockData';
 
@@ -63,28 +64,32 @@ export default function NewPrescriptionScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Veterinaire"
+        eyebrow="VETERINAIRE"
         subtitle="La liste medicament est limitee aux achats du veterinaire connecte."
         title="Nouvelle prescription"
       />
 
       <AIAssistantCard />
 
-      <Card tone="green">
-        <Text style={{ color: '#334155', fontWeight: '800' }}>Medicament achete</Text>
+      <SectionTitle>Medicament achete</SectionTitle>
+      <Card>
         <SegmentedControl
           onChange={setSaleId}
-          options={sales.map((sale) => ({ label: `${sale.atcCode} - ${sale.batchNumber}`, value: sale.id }))}
+          options={sales.map((sale) => ({ label: `${sale.atcCode} — ${sale.batchNumber}`, value: sale.id }))}
           value={saleId}
         />
         {selectedSale ? <AWaReBadge awareClass={selectedSale.awareClass} /> : null}
+      </Card>
+
+      <SectionTitle>Details de la prescription</SectionTitle>
+      <Card>
         <TextField label="Eleveur" onChangeText={setFarmerId} value={farmerId} />
         <TextField label="ID lot animal" onChangeText={setAnimalLotId} value={animalLotId} />
         <TextField
           label="Diagnostic"
           multiline
           onChangeText={setDiagnosis}
-          style={{ minHeight: 76, textAlignVertical: 'top' }}
+          style={styles.textarea}
           value={diagnosis}
         />
         <TextField label="Posologie" onChangeText={setDosage} value={dosage} />
@@ -95,13 +100,30 @@ export default function NewPrescriptionScreen() {
           value={withdrawalDays}
         />
         {safeWithdrawalDays !== Number(withdrawalDays) ? (
-          <Text style={{ color: '#ca8a04', fontWeight: '800' }}>
+          <Text style={styles.warningText}>
             Le contrat forcera {safeWithdrawalDays} jours pour ce code ATC.
           </Text>
         ) : null}
-        {error ? <Text style={{ color: '#dc2626', fontWeight: '800' }}>{error}</Text> : null}
-        <PrimaryButton onPress={submit}>Creer prescription</PrimaryButton>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        <Button onPress={submit}>Signer et creer</Button>
       </Card>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  errorText: {
+    ...typography.caption,
+    color: colors.status.danger,
+    fontWeight: '600',
+  },
+  textarea: {
+    minHeight: 76,
+    textAlignVertical: 'top',
+  },
+  warningText: {
+    ...typography.caption,
+    color: colors.status.warning,
+    fontWeight: '600',
+  },
+});

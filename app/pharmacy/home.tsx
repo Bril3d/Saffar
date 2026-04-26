@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
-import { Card, PageHeader, PrimaryButton, Row, Screen, SectionTitle, Stat } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat } from '@/components/app-ui';
+import { colors, typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { drugSales } from '@/services/mockData';
 
@@ -17,31 +18,51 @@ export default function PharmacyHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Role PHARMACY"
-        subtitle="Ventes suivies avec classification AWaRe et hash on-chain des transactions."
-        title="Pharmacie"
+        eyebrow="PHARMACIE"
+        subtitle="Ventes suivies avec classification AWaRe et hash on-chain."
+        title="Tableau de bord"
       />
 
       <Row>
-        <Stat label="Ventes ce mois" tone="green" value="42" />
-        <Stat label="Veterinaires actifs" tone="blue" value="12" />
-        <Stat label="Doses dispensees" tone="amber" value="1.8k" />
+        <Stat label="Ventes ce mois" tone="success" value="42" />
+        <Stat label="Veterinaires" tone="info" value="12" />
+        <Stat label="Doses dispensees" tone="warning" value="1.8k" />
       </Row>
 
-      <PrimaryButton onPress={() => router.push('/pharmacy/new-sale')}>Nouvelle vente</PrimaryButton>
+      <Button onPress={() => router.push('/pharmacy/new-sale')}>
+        Nouvelle vente
+      </Button>
 
       <SectionTitle>Historique recent</SectionTitle>
       {drugSales.map((sale) => (
-        <Card key={sale.id} tone={sale.awareClass === 'Reserve' ? 'red' : 'green'}>
-          <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>{sale.atcCode}</Text>
-          <AWaReBadge awareClass={sale.awareClass} />
-          <Text style={{ color: '#475569' }}>
-            {sale.vetName} - lot {sale.batchNumber} - {sale.quantity} doses
+        <Card key={sale.id} tone={sale.awareClass === 'Reserve' ? 'danger' : 'default'}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{sale.atcCode}</Text>
+            <AWaReBadge awareClass={sale.awareClass} />
+          </View>
+          <Text style={styles.cardBody}>
+            {sale.vetName} — Lot {sale.batchNumber} — {sale.quantity} doses
           </Text>
         </Card>
       ))}
 
-      <PrimaryButton onPress={signOut}>Se deconnecter</PrimaryButton>
+      <Divider />
+      <Button variant="ghost" onPress={signOut}>Se deconnecter</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  cardBody: {
+    ...typography.body,
+  },
+  cardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+});

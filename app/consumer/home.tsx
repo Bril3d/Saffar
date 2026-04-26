@@ -1,20 +1,21 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { TrustScore } from '@/components/TrustScore';
 import {
+  Button,
   Card,
+  Divider,
   PageHeader,
-  PrimaryButton,
   Row,
   Screen,
-  SecondaryButton,
   SectionTitle,
   SegmentedControl,
   TextField,
 } from '@/components/app-ui';
+import { colors, spacing, typography } from '@/constants/theme';
 import { getProducts } from '@/services/api';
 import { type Product } from '@/services/mockData';
 import { useAuthStore } from '@/store/authStore';
@@ -41,8 +42,8 @@ export default function ConsumerHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Role CONSUMER"
-        subtitle="Catalogue certifie avec trace publique sans donnees privees."
+        eyebrow="CONSOMMATEUR"
+        subtitle="Catalogue certifie avec tracabilite publique."
         title="Marche certifie"
       />
 
@@ -56,48 +57,94 @@ export default function ConsumerHomeScreen() {
         ]}
         value={category}
       />
-      <Card tone="green">
-        <Text style={{ color: '#166534', fontWeight: '900' }}>
+
+      <Card tone="success">
+        <Text style={styles.certNotice}>
           Tous les produits affiches sont certifies blockchain.
         </Text>
       </Card>
 
       <Row>
-        <PrimaryButton onPress={() => router.push('/consumer/scanner')}>Scanner QR</PrimaryButton>
-        <PrimaryButton onPress={() => router.push('/consumer/orders')}>Mes commandes</PrimaryButton>
+        <Button variant="secondary" onPress={() => router.push('/consumer/scanner')}>
+          Scanner QR
+        </Button>
+        <Button variant="secondary" onPress={() => router.push('/consumer/orders')}>
+          Mes commandes
+        </Button>
       </Row>
 
       <SectionTitle>Produits</SectionTitle>
       {visibleProducts.map((product) => (
-        <Card key={product.id} tone="green">
-          <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '900' }}>{product.title}</Text>
-          <Text style={{ color: '#64748b' }}>{product.imageLabel}</Text>
-          <Row>
+        <Card key={product.id}>
+          <Text style={styles.productTitle}>{product.title}</Text>
+          <Text style={styles.productLabel}>{product.imageLabel}</Text>
+          <View style={styles.productRow}>
             <TrustScore value={product.trustScore} />
-            <Card>
-              <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '900' }}>
-                {product.price} TND / {product.unit}
-              </Text>
-              <Text style={{ color: '#475569' }}>{product.farmRegion}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            <View style={styles.priceInfo}>
+              <Text style={styles.price}>{product.price} TND / {product.unit}</Text>
+              <Text style={styles.region}>{product.farmRegion}</Text>
               <AWaReBadge awareClass={product.awareClass} />
-            </Card>
-          </Row>
-          <Row>
-            <PrimaryButton
+            </View>
+          </View>
+          <Row gap={spacing.sm}>
+            <Button
+              compact
               onPress={() =>
                 router.push({ pathname: '/consumer/product-detail', params: { id: product.id } })
               }>
               Voir
-            </PrimaryButton>
-            <SecondaryButton
+            </Button>
+            <Button
+              variant="secondary"
+              compact
               onPress={() => router.push({ pathname: '/consumer/checkout', params: { id: product.id } })}>
               Commander
-            </SecondaryButton>
+            </Button>
           </Row>
         </Card>
       ))}
 
-      <PrimaryButton onPress={signOut}>Se deconnecter</PrimaryButton>
+      <Divider />
+      <Button variant="ghost" onPress={signOut}>Se deconnecter</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  certNotice: {
+    ...typography.body,
+    color: colors.status.success,
+    fontWeight: '600',
+  },
+  price: {
+    ...typography.title,
+    color: colors.text.primary,
+    fontSize: 18,
+  },
+  priceInfo: {
+    gap: spacing.xs,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  productLabel: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+  },
+  productRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  productTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+    fontSize: 18,
+  },
+  region: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+  },
+});

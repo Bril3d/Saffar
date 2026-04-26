@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, PageHeader, PrimaryButton, Screen, SecondaryButton, TextField } from '@/components/app-ui';
+import { Button, PageHeader, Screen, TextField } from '@/components/app-ui';
+import { colors, radii, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { ACTORS, roleHomePath, ROLES, type Role } from '@/types/domain';
 
@@ -22,10 +23,14 @@ export default function LoginScreen() {
 
   return (
     <Screen>
+      <View style={styles.brandContainer}>
+        <Text style={styles.brand}>SAFAR</Text>
+        <Text style={styles.brandSub}>CHAIN</Text>
+      </View>
+
       <PageHeader
-        eyebrow="Safar mobile"
-        subtitle="Choisissez un acteur. Le role est stocke au login et chaque navigateur acteur est protege par RoleGuard."
         title="Connexion"
+        subtitle="Selectionnez votre role et identifiez-vous pour acceder a la plateforme."
       />
 
       <View style={styles.roles}>
@@ -39,64 +44,100 @@ export default function LoginScreen() {
               onPress={() => setSelectedRole(role)}
               style={[
                 styles.roleCard,
-                { borderLeftColor: selected ? actor.accent : '#cbd5e1' },
-                selected ? styles.roleCardSelected : undefined,
+                selected && { backgroundColor: actor.accentBg, borderColor: actor.accent },
               ]}>
-              <Text style={styles.roleLabel}>{actor.label}</Text>
-              <Text style={styles.roleDescription}>{actor.description}</Text>
+              <View style={[styles.roleAccent, { backgroundColor: actor.accent }]} />
+              <View style={styles.roleContent}>
+                <Text style={[styles.roleLabel, selected && { color: colors.text.primary }]}>
+                  {actor.label}
+                </Text>
+                <Text style={styles.roleDescription}>{actor.description}</Text>
+              </View>
             </Pressable>
           );
         })}
       </View>
 
-      <Card tone="green">
+      <View style={styles.formSection}>
         <TextField
           autoCapitalize="none"
           keyboardType="email-address"
-          label="Email"
+          label="Adresse email"
           onChangeText={setEmail}
+          placeholder="votre@email.com"
           value={email}
         />
         <TextField
           label="Mot de passe"
           onChangeText={setPassword}
           secureTextEntry
+          placeholder="Minimum 8 caracteres"
           value={password}
         />
-        <PrimaryButton disabled={loading || !email || !password} onPress={submit}>
+        <Button disabled={loading || !email || !password} onPress={submit}>
           Se connecter
-        </PrimaryButton>
-        {loading ? <ActivityIndicator color="#166534" /> : null}
-        <SecondaryButton onPress={() => undefined}>Creer un compte</SecondaryButton>
-      </Card>
+        </Button>
+        {loading ? <ActivityIndicator color={colors.accent.primary} /> : null}
+        <Button variant="ghost" onPress={() => undefined}>
+          Creer un compte
+        </Button>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  roleCard: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    borderLeftWidth: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 5,
-    padding: 14,
+  brandContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.lg,
   },
-  roleCardSelected: {
-    backgroundColor: '#f0fdf4',
+  brand: {
+    color: colors.accent.primary,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 4,
+  },
+  brandSub: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+    fontSize: 12,
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  formSection: {
+    gap: spacing.lg,
+  },
+  roleAccent: {
+    borderRadius: radii.full,
+    height: 8,
+    marginTop: 4,
+    width: 8,
+  },
+  roleCard: {
+    backgroundColor: colors.bg.secondary,
+    borderColor: colors.border.default,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  roleContent: {
+    flex: 1,
+    gap: spacing.xs,
   },
   roleDescription: {
-    color: '#64748b',
-    fontSize: 13,
-    lineHeight: 18,
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
   roleLabel: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '900',
+    ...typography.section,
+    color: colors.text.secondary,
+    fontSize: 15,
   },
   roles: {
-    gap: 10,
+    gap: spacing.sm,
   },
 });

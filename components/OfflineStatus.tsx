@@ -2,6 +2,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors, radii, spacing, typography } from '@/constants/theme';
 import { getQueueLength } from '@/services/offlineQueue';
 
 export function OfflineStatus() {
@@ -34,10 +35,13 @@ export function OfflineStatus() {
     return null;
   }
 
+  const accent = online ? colors.status.success : colors.status.warning;
+
   return (
-    <View style={[styles.bar, online ? styles.online : styles.offline]}>
-      <Text style={styles.text}>
-        {online ? 'Synchronisation prete' : 'Hors connexion'} - {queueLength} actions en attente
+    <View style={[styles.bar, { borderColor: `${accent}25` }]}>
+      <View style={[styles.dot, { backgroundColor: accent }]} />
+      <Text style={[styles.text, { color: accent }]}>
+        {online ? 'Synchronisation prete' : 'Hors connexion'} — {queueLength} en attente
       </Text>
     </View>
   );
@@ -45,19 +49,22 @@ export function OfflineStatus() {
 
 const styles = StyleSheet.create({
   bar: {
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    alignItems: 'center',
+    backgroundColor: colors.bg.secondary,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
   },
-  offline: {
-    backgroundColor: '#fef3c7',
-  },
-  online: {
-    backgroundColor: '#dcfce7',
+  dot: {
+    borderRadius: radii.full,
+    height: 7,
+    width: 7,
   },
   text: {
-    color: '#0f172a',
-    fontSize: 13,
-    fontWeight: '800',
+    ...typography.caption,
+    fontWeight: '600',
   },
 });

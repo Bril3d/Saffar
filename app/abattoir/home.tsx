@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PageHeader, PrimaryButton, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
+import { colors, typography } from '@/constants/theme';
 import { lots } from '@/services/mockData';
 import { useAuthStore } from '@/store/authStore';
 
@@ -16,38 +17,63 @@ export default function AbattoirHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Role SLAUGHTERHOUSE"
-        subtitle="Verification eligibilite et certification impossible a contourner."
-        title="Abattoir"
+        eyebrow="ABATTOIR"
+        subtitle="Verification eligibilite et certification on-chain."
+        title="Tableau de bord"
       />
 
       <Row>
-        <Stat label="Lots verifies" tone="blue" value="18" />
-        <Stat label="Eligibles" tone="green" value="14" />
-        <Stat label="Rejetes" tone="red" value="4" />
+        <Stat label="Lots verifies" tone="info" value="18" />
+        <Stat label="Eligibles" tone="success" value="14" />
+        <Stat label="Rejetes" tone="danger" value="4" />
       </Row>
 
-      <Card tone="green">
-        <Text style={{ color: '#0f172a', fontSize: 22, fontWeight: '900' }}>Scanner un lot</Text>
-        <Text style={{ color: '#475569' }}>
+      <Card tone="info">
+        <Text style={styles.scanTitle}>Scanner un lot</Text>
+        <Text style={styles.scanBody}>
           Le QR code declenche le controle smart contract avant toute certification.
         </Text>
-        <PrimaryButton onPress={() => router.push('/abattoir/scanner')}>Ouvrir camera</PrimaryButton>
+        <Button onPress={() => router.push('/abattoir/scanner')}>Ouvrir le scanner</Button>
       </Card>
 
       <SectionTitle>Scans recents</SectionTitle>
       {lots.map((lot) => (
-        <Card key={lot.id} tone={lot.status === 'CERTIFIED' ? 'green' : 'red'}>
-          <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>{lot.id}</Text>
-          <StatusChip
-            label={lot.status === 'CERTIFIED' ? 'ELIGIBLE' : 'NON ELIGIBLE'}
-            tone={lot.status === 'CERTIFIED' ? 'green' : 'red'}
-          />
-          <Text style={{ color: '#475569' }}>{lot.name}</Text>
+        <Card key={lot.id} tone={lot.status === 'CERTIFIED' ? 'success' : 'danger'}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{lot.id}</Text>
+            <StatusChip
+              label={lot.status === 'CERTIFIED' ? 'ELIGIBLE' : 'NON ELIGIBLE'}
+              tone={lot.status === 'CERTIFIED' ? 'success' : 'danger'}
+            />
+          </View>
+          <Text style={styles.cardBody}>{lot.name}</Text>
         </Card>
       ))}
 
-      <PrimaryButton onPress={signOut}>Se deconnecter</PrimaryButton>
+      <Divider />
+      <Button variant="ghost" onPress={signOut}>Se deconnecter</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  cardBody: {
+    ...typography.body,
+  },
+  cardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  scanBody: {
+    ...typography.body,
+  },
+  scanTitle: {
+    ...typography.title,
+    color: colors.text.primary,
+  },
+});

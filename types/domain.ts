@@ -1,3 +1,5 @@
+import { colors } from '@/constants/theme';
+
 export type Role = 'PHARMACY' | 'VET' | 'FARMER' | 'SLAUGHTERHOUSE' | 'CONSUMER';
 
 export type AwareClass = 'Access' | 'Watch' | 'Reserve';
@@ -8,6 +10,7 @@ export const ACTORS: Record<
   Role,
   {
     accent: string;
+    accentBg: string;
     description: string;
     homePath: `/${ActorKey}/home`;
     key: ActorKey;
@@ -15,35 +18,40 @@ export const ACTORS: Record<
   }
 > = {
   PHARMACY: {
-    accent: '#15803d',
+    accent: colors.role.pharmacy,
+    accentBg: colors.role.pharmacyBg,
     description: 'Ventes antibiotiques et lots dispenses',
     homePath: '/pharmacy/home',
     key: 'pharmacy',
     label: 'Pharmacie',
   },
   VET: {
-    accent: '#0f766e',
+    accent: colors.role.vet,
+    accentBg: colors.role.vetBg,
     description: 'Prescriptions, IA locale et delais de retrait',
     homePath: '/vet/home',
     key: 'vet',
     label: 'Veterinaire',
   },
   FARMER: {
-    accent: '#ca8a04',
+    accent: colors.role.farmer,
+    accentBg: colors.role.farmerBg,
     description: 'Administration, lots et ventes directes',
     homePath: '/farmer/home',
     key: 'farmer',
     label: 'Eleveur',
   },
   SLAUGHTERHOUSE: {
-    accent: '#dc2626',
+    accent: colors.role.slaughterhouse,
+    accentBg: colors.role.slaughterhouseBg,
     description: 'Scan QR et certification des lots',
     homePath: '/abattoir/home',
     key: 'abattoir',
     label: 'Abattoir',
   },
   CONSUMER: {
-    accent: '#2563eb',
+    accent: colors.role.consumer,
+    accentBg: colors.role.consumerBg,
     description: 'Catalogue, tracabilite et commandes',
     homePath: '/consumer/home',
     key: 'consumer',

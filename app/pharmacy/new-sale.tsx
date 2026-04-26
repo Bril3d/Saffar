@@ -1,19 +1,20 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
 import {
+  Button,
   Card,
   PageHeader,
-  PrimaryButton,
   Row,
   Screen,
-  SecondaryButton,
+  SectionTitle,
   SegmentedControl,
   TextField,
 } from '@/components/app-ui';
+import { colors, spacing, typography } from '@/constants/theme';
 import { createDrugSale, getVets } from '@/services/api';
 import { awareClassForAtc } from '@/types/domain';
 import { type VetProfile } from '@/services/mockData';
@@ -68,12 +69,13 @@ export default function NewSaleScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Pharmacie"
-        subtitle="La vente est liee a un veterinaire enregistre et sera envoyee au backend Dev 3."
+        eyebrow="PHARMACIE"
+        subtitle="La vente est liee a un veterinaire enregistre et sera envoyee au backend."
         title="Nouvelle vente"
       />
 
-      <Card tone={awareClass === 'Reserve' ? 'red' : awareClass === 'Watch' ? 'amber' : 'green'}>
+      <SectionTitle>Medicament</SectionTitle>
+      <Card tone={awareClass === 'Reserve' ? 'danger' : awareClass === 'Watch' ? 'warning' : 'default'}>
         <TextField
           autoCapitalize="characters"
           label="Code ATC"
@@ -82,29 +84,52 @@ export default function NewSaleScreen() {
         />
         <AWaReBadge awareClass={awareClass} />
         <TextField label="Numero de lot" onChangeText={setBatchNumber} value={batchNumber} />
+      </Card>
 
-        <Text style={{ color: '#334155', fontWeight: '800' }}>Veterinaire</Text>
+      <SectionTitle>Veterinaire</SectionTitle>
+      <Card>
         <SegmentedControl
           onChange={setVetId}
           options={vets.map((vet) => ({ label: vet.name, value: vet.id }))}
           value={vetId}
         />
-
-        <Text style={{ color: '#334155', fontWeight: '800' }}>Quantite</Text>
-        <Row>
-          <SecondaryButton onPress={() => setQuantity((value) => Math.max(1, value - 1))}>-</SecondaryButton>
-          <Card>
-            <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '900' }}>{quantity} doses</Text>
-          </Card>
-          <SecondaryButton onPress={() => setQuantity((value) => value + 1)}>+</SecondaryButton>
-        </Row>
-
-        {error ? <Text style={{ color: '#dc2626', fontWeight: '800' }}>{error}</Text> : null}
-        <PrimaryButton onPress={submit}>Confirmer par biometrie</PrimaryButton>
-        <SecondaryButton onPress={() => Alert.alert('Brouillon', 'La vente reste en saisie locale.')}>
-          Enregistrer brouillon
-        </SecondaryButton>
       </Card>
+
+      <SectionTitle>Quantite</SectionTitle>
+      <Card>
+        <View style={styles.quantityRow}>
+          <Button variant="secondary" compact onPress={() => setQuantity((v) => Math.max(1, v - 1))}>-</Button>
+          <Text style={styles.quantityValue}>{quantity} doses</Text>
+          <Button variant="secondary" compact onPress={() => setQuantity((v) => v + 1)}>+</Button>
+        </View>
+      </Card>
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <Button onPress={submit}>Confirmer par biometrie</Button>
+      <Button variant="secondary" onPress={() => Alert.alert('Brouillon', 'La vente reste en saisie locale.')}>
+        Enregistrer brouillon
+      </Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  errorText: {
+    ...typography.caption,
+    color: colors.status.danger,
+    fontWeight: '600',
+  },
+  quantityRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'center',
+  },
+  quantityValue: {
+    ...typography.title,
+    color: colors.text.primary,
+    minWidth: 100,
+    textAlign: 'center',
+  },
+});

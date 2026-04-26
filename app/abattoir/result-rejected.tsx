@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BlockchainHash } from '@/components/BlockchainHash';
-import { Card, PageHeader, PrimaryButton, Screen, StatusChip } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Screen, StatusChip } from '@/components/app-ui';
+import { colors, radii, spacing, typography } from '@/constants/theme';
 import { lots } from '@/services/mockData';
 
 export default function RejectedResultScreen() {
@@ -17,39 +18,78 @@ export default function RejectedResultScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Controle bloque"
+        eyebrow="CONTROLE BLOQUE"
         subtitle="Aucune exception possible pendant le delai de retrait."
         title="Lot non eligible"
       />
 
-      <Card tone="red">
-        <View
-          style={{
-            alignItems: 'center',
-            alignSelf: 'center',
-            backgroundColor: '#fee2e2',
-            borderRadius: 110,
-            height: 150,
-            justifyContent: 'center',
-            width: 150,
-          }}>
-          <Text style={{ color: '#991b1b', fontSize: 48, fontWeight: '900' }}>NO</Text>
+      <Card tone="danger">
+        <View style={styles.dangerIcon}>
+          <Text style={styles.dangerText}>NO</Text>
         </View>
-        <Text style={{ color: '#991b1b', fontSize: 26, fontWeight: '900', textAlign: 'center' }}>
-          LOT NON ELIGIBLE
-        </Text>
-        <Text style={{ color: '#991b1b', fontSize: 42, fontWeight: '900', textAlign: 'center' }}>
-          {days} JOURS
-        </Text>
-        <StatusChip label="Smart contract bloque" tone="red" />
-        <Text style={{ color: '#475569' }}>
-          Abattage possible a partir du: {lot.withdrawalEnd}
-        </Text>
-        <Text style={{ color: '#475569' }}>Lot: {lot.id}</Text>
+        <Text style={styles.resultTitle}>LOT NON ELIGIBLE</Text>
+        <Text style={styles.daysCount}>{days} JOURS</Text>
+        <StatusChip label="Smart contract bloque" tone="danger" />
+        <Divider />
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Abattage possible</Text>
+          <Text style={styles.detailValue}>{lot.withdrawalEnd}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Lot</Text>
+          <Text style={styles.detailValue}>{lot.id}</Text>
+        </View>
+        <Divider />
         <BlockchainHash hash={txHash ?? '0xabc91d2719961c41cc3b7db14a961c9cf040220eaa2716d5900718bb55a901'} />
-        <PrimaryButton onPress={() => undefined}>Notifier eleveur</PrimaryButton>
-        <PrimaryButton onPress={() => router.replace('/abattoir/scanner')}>Scanner autre lot</PrimaryButton>
+        <Button variant="danger" onPress={() => undefined}>Notifier eleveur</Button>
+        <Button variant="secondary" onPress={() => router.replace('/abattoir/scanner')}>
+          Scanner autre lot
+        </Button>
       </Card>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  dangerIcon: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: colors.status.dangerBg,
+    borderColor: `${colors.status.danger}30`,
+    borderRadius: 75,
+    borderWidth: 2,
+    height: 150,
+    justifyContent: 'center',
+    width: 150,
+  },
+  dangerText: {
+    color: colors.status.danger,
+    fontSize: 42,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  daysCount: {
+    color: colors.status.danger,
+    fontSize: 36,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  detail: {
+    gap: spacing.xs,
+  },
+  detailLabel: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+  },
+  detailValue: {
+    ...typography.body,
+    color: colors.text.primary,
+  },
+  resultTitle: {
+    ...typography.title,
+    color: colors.status.danger,
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+});

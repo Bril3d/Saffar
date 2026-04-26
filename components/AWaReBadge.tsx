@@ -1,46 +1,56 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors, radii, spacing } from '@/constants/theme';
 import { type AwareClass } from '@/types/domain';
 
-const BADGE_STYLE: Record<AwareClass, { background: string; color: string; label: string }> = {
+const BADGE_CONFIG: Record<AwareClass, { accent: string; bg: string; label: string }> = {
   Access: {
-    background: '#dcfce7',
-    color: '#166534',
-    label: 'Access',
+    accent: colors.aware.access,
+    bg: colors.aware.accessBg,
+    label: 'ACCESS',
   },
   Watch: {
-    background: '#fef3c7',
-    color: '#92400e',
-    label: 'Watch',
+    accent: colors.aware.watch,
+    bg: colors.aware.watchBg,
+    label: 'WATCH',
   },
   Reserve: {
-    background: '#fee2e2',
-    color: '#991b1b',
-    label: 'Reserve',
+    accent: colors.aware.reserve,
+    bg: colors.aware.reserveBg,
+    label: 'RESERVE',
   },
 };
 
 export function AWaReBadge({ awareClass }: { awareClass: AwareClass }) {
-  const badge = BADGE_STYLE[awareClass];
+  const config = BADGE_CONFIG[awareClass];
 
   return (
-    <View style={[styles.badge, { backgroundColor: badge.background }]}>
-      <Text style={[styles.text, { color: badge.color }]}>{badge.label}</Text>
+    <View style={[styles.badge, { backgroundColor: config.bg, borderColor: `${config.accent}30` }]}>
+      <View style={[styles.dot, { backgroundColor: config.accent }]} />
+      <Text style={[styles.label, { color: config.accent }]}>{config.label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 1,
   },
-  text: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0,
-    textTransform: 'uppercase',
+  dot: {
+    borderRadius: radii.full,
+    height: 7,
+    width: 7,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
 });

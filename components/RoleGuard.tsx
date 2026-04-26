@@ -1,7 +1,8 @@
 import { Redirect } from 'expo-router';
 import { type ComponentType, type PropsWithChildren } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { colors, typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { type Role } from '@/types/domain';
 
@@ -16,7 +17,8 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
   if (!hydrated) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#166534" size="large" />
+        <Text style={styles.brand}>SAFAR</Text>
+        <ActivityIndicator color={colors.accent.primary} size="small" />
       </View>
     );
   }
@@ -42,9 +44,16 @@ export function withRoleGuard<TProps extends object>(
 }
 
 const styles = StyleSheet.create({
+  brand: {
+    ...typography.overline,
+    color: colors.accent.primary,
+    fontSize: 14,
+    letterSpacing: 4,
+    marginBottom: 16,
+  },
   loading: {
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bg.primary,
     flex: 1,
     justifyContent: 'center',
   },

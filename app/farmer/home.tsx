@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
-import { Card, PageHeader, PrimaryButton, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Row, Screen, SectionTitle, Stat, StatusChip } from '@/components/app-ui';
 import { OfflineStatus } from '@/components/OfflineStatus';
+import { colors, spacing, typography } from '@/constants/theme';
 import { lotTone } from '@/services/api';
 import { lots } from '@/services/mockData';
 import { useAuthStore } from '@/store/authStore';
@@ -20,59 +21,89 @@ export default function FarmerHomeScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Role FARMER"
+        eyebrow="ELEVEUR"
         subtitle="Administration offline-first, lots et marketplace direct."
-        title="Eleveur"
+        title="Tableau de bord"
       />
 
       <OfflineStatus />
 
       {withdrawalLot ? (
-        <Card tone="amber">
-          <Text style={{ color: '#92400e', fontSize: 16, fontWeight: '900' }}>
-            Lot en delai de retrait
-          </Text>
-          <Text style={{ color: '#475569' }}>
-            {withdrawalLot.id} reste bloque jusqu au {withdrawalLot.withdrawalEnd}.
+        <Card tone="warning">
+          <Text style={styles.warningTitle}>Lot en delai de retrait</Text>
+          <Text style={styles.warningBody}>
+            {withdrawalLot.id} reste bloque jusqu'au {withdrawalLot.withdrawalEnd}.
           </Text>
         </Card>
       ) : null}
 
       <Row>
-        <Stat label="Lots actifs" tone="green" value="3" />
-        <Stat label="Commandes" tone="blue" value="7" />
-        <Stat label="Revenu net" tone="amber" value="486 TND" />
+        <Stat label="Lots actifs" tone="success" value="3" />
+        <Stat label="Commandes" tone="info" value="7" />
+        <Stat label="Revenu net" tone="warning" value="486 TND" />
       </Row>
 
       <Row>
-        <PrimaryButton onPress={() => router.push('/farmer/confirm-admin')}>
+        <Button onPress={() => router.push('/farmer/confirm-admin')}>
           Confirmer traitement
-        </PrimaryButton>
-        <PrimaryButton onPress={() => router.push('/farmer/publish-product')}>
+        </Button>
+      </Row>
+      <Row>
+        <Button variant="secondary" onPress={() => router.push('/farmer/publish-product')}>
           Publier produit
-        </PrimaryButton>
-        <PrimaryButton onPress={() => router.push('/farmer/my-sales')}>Mes ventes</PrimaryButton>
+        </Button>
+        <Button variant="secondary" onPress={() => router.push('/farmer/my-sales')}>
+          Mes ventes
+        </Button>
       </Row>
 
       <SectionTitle>Mes lots</SectionTitle>
       {lots.map((lot) => (
-        <Card key={lot.id} tone={lotTone(lot)}>
-          <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>{lot.name}</Text>
-          <AWaReBadge awareClass={lot.awareClass} />
+        <Card key={lot.id} tone={lot.status === 'WITHDRAWAL' ? 'warning' : lot.status === 'CERTIFIED' ? 'success' : 'default'}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{lot.name}</Text>
+            <AWaReBadge awareClass={lot.awareClass} />
+          </View>
           <StatusChip
             label={lot.status === 'WITHDRAWAL' ? lot.countdown : lot.status}
-            tone={lot.status === 'WITHDRAWAL' ? 'amber' : lot.status === 'CERTIFIED' ? 'green' : 'default'}
+            tone={lot.status === 'WITHDRAWAL' ? 'warning' : lot.status === 'CERTIFIED' ? 'success' : 'default'}
           />
-          <Text style={{ color: '#475569' }}>
-            {lot.antibiotic} - retrait fin {lot.withdrawalEnd}
+          <Text style={styles.cardBody}>
+            {lot.antibiotic} — retrait fin {lot.withdrawalEnd}
           </Text>
           {lot.status === 'CERTIFIED' ? (
-            <PrimaryButton onPress={() => router.push('/farmer/publish-product')}>Publier produit</PrimaryButton>
+            <Button variant="secondary" compact onPress={() => router.push('/farmer/publish-product')}>
+              Publier produit
+            </Button>
           ) : null}
         </Card>
       ))}
 
-      <PrimaryButton onPress={signOut}>Se deconnecter</PrimaryButton>
+      <Divider />
+      <Button variant="ghost" onPress={signOut}>Se deconnecter</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  cardBody: {
+    ...typography.body,
+  },
+  cardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  warningBody: {
+    ...typography.body,
+    color: colors.status.warning,
+  },
+  warningTitle: {
+    ...typography.section,
+    color: colors.status.warning,
+  },
+});

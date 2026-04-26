@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PageHeader, PrimaryButton, Screen, SegmentedControl, TextField } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Screen, SectionTitle, SegmentedControl, TextField } from '@/components/app-ui';
+import { colors, spacing, typography } from '@/constants/theme';
 import { getCertifiedLots, publishProduct } from '@/services/api';
 import { type Lot } from '@/services/mockData';
 
@@ -43,18 +44,22 @@ export default function PublishProductScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Marketplace"
+        eyebrow="ELEVEUR"
         subtitle="Seuls les lots certifies peuvent etre publies."
         title="Publier produit"
       />
 
-      <Card tone={lotId ? 'green' : 'red'}>
-        <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '900' }}>Lot certifie</Text>
+      <SectionTitle>Lot certifie</SectionTitle>
+      <Card tone={lotId ? 'success' : 'danger'}>
         <SegmentedControl
           onChange={setLotId}
           options={certifiedLots.map((lot) => ({ label: lot.id, value: lot.id }))}
           value={lotId}
         />
+      </Card>
+
+      <SectionTitle>Details du produit</SectionTitle>
+      <Card>
         <TextField label="Nom produit" onChangeText={setTitle} value={title} />
         <SegmentedControl
           onChange={setCategory}
@@ -65,26 +70,72 @@ export default function PublishProductScreen() {
           ]}
           value={category}
         />
-        <TextField keyboardType="numeric" label="Prix" onChangeText={setPrice} value={price} />
-        <TextField keyboardType="numeric" label="Stock" onChangeText={setStock} value={stock} />
+        <TextField keyboardType="numeric" label="Prix (TND)" onChangeText={setPrice} value={price} />
+        <TextField keyboardType="numeric" label="Stock disponible" onChangeText={setStock} value={stock} />
         <SegmentedControl
           onChange={setDeliveryMode}
           options={[
-            { label: 'Retrait', value: 'pickup' },
+            { label: 'Retrait sur place', value: 'pickup' },
             { label: 'Livraison', value: 'delivery' },
           ]}
           value={deliveryMode}
         />
-        <Card tone="blue">
-          <Text style={{ color: '#0f172a', fontWeight: '900' }}>Apercu revenu</Text>
-          <Text style={{ color: '#475569' }}>
-            {price || 0} TND x 90% = {netRevenue.toFixed(2)} TND net par unite
-          </Text>
-          <Text style={{ color: '#475569' }}>Comparaison marche: +12% vs vente gros locale</Text>
-        </Card>
-        {message ? <Text style={{ color: '#166534', fontWeight: '800' }}>{message}</Text> : null}
-        <PrimaryButton disabled={!lotId} onPress={submit}>Publier</PrimaryButton>
       </Card>
+
+      <Card tone="info">
+        <Text style={styles.revenueTitle}>Apercu revenu</Text>
+        <Divider />
+        <View style={styles.revenueRow}>
+          <Text style={styles.revenueLabel}>Prix unitaire</Text>
+          <Text style={styles.revenueValue}>{price || 0} TND</Text>
+        </View>
+        <View style={styles.revenueRow}>
+          <Text style={styles.revenueLabel}>Commission (10%)</Text>
+          <Text style={[styles.revenueValue, { color: colors.status.warning }]}>
+            -{((Number(price) || 0) * 0.1).toFixed(2)} TND
+          </Text>
+        </View>
+        <View style={styles.revenueRow}>
+          <Text style={styles.revenueLabel}>Revenu net</Text>
+          <Text style={[styles.revenueValue, { color: colors.status.success }]}>
+            {netRevenue.toFixed(2)} TND
+          </Text>
+        </View>
+        <Text style={styles.comparison}>+12% vs vente gros locale</Text>
+      </Card>
+
+      {message ? <Text style={styles.messageText}>{message}</Text> : null}
+      <Button disabled={!lotId} onPress={submit}>Publier</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  comparison: {
+    ...typography.caption,
+    color: colors.status.success,
+    fontWeight: '600',
+  },
+  messageText: {
+    ...typography.caption,
+    color: colors.status.success,
+    fontWeight: '600',
+  },
+  revenueLabel: {
+    ...typography.body,
+    color: colors.text.secondary,
+  },
+  revenueRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  revenueTitle: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  revenueValue: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+});

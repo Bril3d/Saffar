@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PageHeader, PrimaryButton, Row, Screen, SegmentedControl, TextField } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Screen, SectionTitle, SegmentedControl, TextField } from '@/components/app-ui';
+import { colors, spacing, typography } from '@/constants/theme';
 import { createOrder, productById } from '@/services/api';
 
 export default function CheckoutScreen() {
@@ -38,12 +39,12 @@ export default function CheckoutScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Commande"
-        subtitle="Paiement mock pour demo hackathon."
+        eyebrow="CONSOMMATEUR"
         title={product.title}
       />
 
-      <Card tone="green">
+      <SectionTitle>Details de la commande</SectionTitle>
+      <Card>
         <TextField keyboardType="numeric" label="Quantite" onChangeText={setQuantity} value={quantity} />
         <SegmentedControl
           onChange={setDeliveryMode}
@@ -56,31 +57,68 @@ export default function CheckoutScreen() {
         {deliveryMode === 'delivery' ? (
           <TextField label="Adresse livraison" onChangeText={setAddress} value={address} />
         ) : null}
+      </Card>
+
+      <SectionTitle>Paiement</SectionTitle>
+      <Card>
         <SegmentedControl
           onChange={setPaymentMethod}
           options={[
             { label: 'D17', value: 'D17' },
             { label: 'Carte', value: 'Carte' },
-            { label: 'Livraison', value: 'Cash' },
+            { label: 'Especes', value: 'Cash' },
           ]}
           value={paymentMethod}
         />
-        <Card tone="blue">
-          <Row>
-            <Text style={{ color: '#475569' }}>Sous-total</Text>
-            <Text style={{ color: '#0f172a', fontWeight: '900' }}>{subtotal.toFixed(2)} TND</Text>
-          </Row>
-          <Row>
-            <Text style={{ color: '#475569' }}>Livraison</Text>
-            <Text style={{ color: '#0f172a', fontWeight: '900' }}>{deliveryFee.toFixed(2)} TND</Text>
-          </Row>
-          <Text style={{ color: '#0f172a', fontSize: 24, fontWeight: '900' }}>
-            Total {total.toFixed(2)} TND
-          </Text>
-        </Card>
-        {message ? <Text style={{ color: '#dc2626', fontWeight: '800' }}>{message}</Text> : null}
-        <PrimaryButton onPress={submit}>Confirmer la commande</PrimaryButton>
       </Card>
+
+      <Card tone="info">
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Sous-total</Text>
+          <Text style={styles.summaryValue}>{subtotal.toFixed(2)} TND</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Livraison</Text>
+          <Text style={styles.summaryValue}>{deliveryFee.toFixed(2)} TND</Text>
+        </View>
+        <Divider />
+        <View style={styles.summaryRow}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalValue}>{total.toFixed(2)} TND</Text>
+        </View>
+      </Card>
+
+      {message ? <Text style={styles.errorText}>{message}</Text> : null}
+      <Button onPress={submit}>Confirmer la commande</Button>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  errorText: {
+    ...typography.caption,
+    color: colors.status.danger,
+    fontWeight: '600',
+  },
+  summaryLabel: {
+    ...typography.body,
+    color: colors.text.secondary,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryValue: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+  totalLabel: {
+    ...typography.section,
+    color: colors.text.primary,
+  },
+  totalValue: {
+    ...typography.title,
+    color: colors.accent.primary,
+  },
+});

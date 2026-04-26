@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AWaReBadge } from '@/components/AWaReBadge';
 import { BlockchainHash } from '@/components/BlockchainHash';
-import { Card, PageHeader, PrimaryButton, Screen, StatusChip } from '@/components/app-ui';
+import { Button, Card, Divider, PageHeader, Screen, StatusChip } from '@/components/app-ui';
+import { colors, radii, spacing, typography } from '@/constants/theme';
 import { certifyLot, prescriptionByLot } from '@/services/api';
 import { lots } from '@/services/mockData';
 
@@ -22,38 +23,80 @@ export default function EligibleResultScreen() {
   return (
     <Screen>
       <PageHeader
-        eyebrow="Controle valide"
+        eyebrow="CONTROLE VALIDE"
         subtitle="block.timestamp >= dateFinRetrait confirme par le contrat."
         title="Lot eligible"
       />
 
-      <Card tone="green">
-        <View
-          style={{
-            alignItems: 'center',
-            alignSelf: 'center',
-            backgroundColor: '#dcfce7',
-            borderRadius: 110,
-            height: 150,
-            justifyContent: 'center',
-            width: 150,
-          }}>
-          <Text style={{ color: '#166534', fontSize: 48, fontWeight: '900' }}>OK</Text>
+      <Card tone="success">
+        <View style={styles.successIcon}>
+          <Text style={styles.successText}>OK</Text>
         </View>
-        <Text style={{ color: '#166534', fontSize: 26, fontWeight: '900', textAlign: 'center' }}>
-          LOT ELIGIBLE
-        </Text>
-        <StatusChip label="Smart contract valide" tone="green" />
-        <Text style={{ color: '#475569' }}>Region ferme: {lot.farmRegion}</Text>
-        <Text style={{ color: '#475569' }}>Antibiotique: {lot.antibiotic}</Text>
+        <Text style={styles.resultTitle}>LOT ELIGIBLE</Text>
+        <StatusChip label="Smart contract valide" tone="success" />
+        <Divider />
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Region</Text>
+          <Text style={styles.detailValue}>{lot.farmRegion}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Antibiotique</Text>
+          <Text style={styles.detailValue}>{lot.antibiotic}</Text>
+        </View>
         <AWaReBadge awareClass={lot.awareClass} />
-        <Text style={{ color: '#475569' }}>Dernier retrait: {lot.withdrawalEnd}</Text>
-        <Text style={{ color: '#475569' }}>Prescription: {prescription?.id ?? 'rx-demo'}</Text>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Fin retrait</Text>
+          <Text style={styles.detailValue}>{lot.withdrawalEnd}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Prescription</Text>
+          <Text style={styles.detailValue}>{prescription?.id ?? 'rx-demo'}</Text>
+        </View>
+        <Divider />
         <BlockchainHash hash={txHash ?? '0x6ec7c26412f9fd20a3a12f5f55d9826a493487c341d3882fab6726e7e431bd83'} />
-        <PrimaryButton onPress={certify}>Imprimer etiquette QR</PrimaryButton>
+        <Button onPress={certify}>Imprimer etiquette QR</Button>
         {certificateHash ? <BlockchainHash hash={certificateHash} /> : null}
-        <PrimaryButton onPress={() => router.replace('/abattoir/scanner')}>Scanner autre lot</PrimaryButton>
+        <Button variant="secondary" onPress={() => router.replace('/abattoir/scanner')}>
+          Scanner autre lot
+        </Button>
       </Card>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  detail: {
+    gap: spacing.xs,
+  },
+  detailLabel: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+  },
+  detailValue: {
+    ...typography.body,
+    color: colors.text.primary,
+  },
+  resultTitle: {
+    ...typography.title,
+    color: colors.status.success,
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+  successIcon: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: colors.status.successBg,
+    borderColor: `${colors.status.success}30`,
+    borderRadius: 75,
+    borderWidth: 2,
+    height: 150,
+    justifyContent: 'center',
+    width: 150,
+  },
+  successText: {
+    color: colors.status.success,
+    fontSize: 42,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+});

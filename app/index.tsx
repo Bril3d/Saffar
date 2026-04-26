@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { colors, typography } from '@/constants/theme';
 import { roleHomePath } from '@/types/domain';
 import { useAuthStore } from '@/store/authStore';
 
@@ -11,7 +12,9 @@ export default function IndexRoute() {
   if (!hydrated) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#166534" size="large" />
+        <Text style={styles.brand}>SAFAR</Text>
+        <Text style={styles.brandSub}>CHAIN</Text>
+        <ActivityIndicator color={colors.accent.primary} size="small" style={styles.spinner} />
       </View>
     );
   }
@@ -20,10 +23,26 @@ export default function IndexRoute() {
 }
 
 const styles = StyleSheet.create({
+  brand: {
+    color: colors.accent.primary,
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: 6,
+  },
+  brandSub: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+    fontSize: 14,
+    letterSpacing: 4,
+    marginTop: 4,
+  },
   loading: {
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bg.primary,
     flex: 1,
     justifyContent: 'center',
+  },
+  spinner: {
+    marginTop: 24,
   },
 });

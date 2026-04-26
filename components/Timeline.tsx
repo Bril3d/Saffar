@@ -1,15 +1,17 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors, radii, spacing, typography } from '@/constants/theme';
+
 export type TimelineStep = {
   detail: string;
   status?: 'done' | 'active' | 'locked';
   title: string;
 };
 
-const COLORS = {
-  active: '#ca8a04',
-  done: '#15803d',
-  locked: '#94a3b8',
+const STATUS_COLORS = {
+  done: colors.status.success,
+  active: colors.status.warning,
+  locked: colors.text.tertiary,
 };
 
 export function Timeline({ steps }: { steps: TimelineStep[] }) {
@@ -17,12 +19,25 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
     <View style={styles.container}>
       {steps.map((step, index) => {
         const status = step.status ?? 'locked';
+        const color = STATUS_COLORS[status];
+        const isLast = index === steps.length - 1;
 
         return (
           <View key={`${step.title}-${index}`} style={styles.step}>
-            <View style={[styles.dot, { backgroundColor: COLORS[status] }]} />
-            <View style={styles.copy}>
-              <Text style={styles.title}>{step.title}</Text>
+            <View style={styles.dotColumn}>
+              <View style={[styles.dotOuter, { borderColor: color }]}>
+                {status === 'done' ? (
+                  <View style={[styles.dotFilled, { backgroundColor: color }]} />
+                ) : null}
+              </View>
+              {!isLast ? (
+                <View style={[styles.line, { backgroundColor: status === 'done' ? color : colors.border.default }]} />
+              ) : null}
+            </View>
+            <View style={styles.content}>
+              <Text style={[styles.title, { color: status === 'locked' ? colors.text.tertiary : colors.text.primary }]}>
+                {step.title}
+              </Text>
               <Text style={styles.detail}>{step.detail}</Text>
             </View>
           </View>
@@ -34,30 +49,48 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 14,
+    gap: 0,
   },
-  copy: {
+  content: {
     flex: 1,
-    gap: 4,
+    gap: spacing.xs,
+    paddingBottom: spacing.lg,
   },
   detail: {
-    color: '#64748b',
-    fontSize: 13,
-    lineHeight: 19,
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
-  dot: {
-    borderRadius: 999,
+  dotColumn: {
+    alignItems: 'center',
+    width: 24,
+  },
+  dotFilled: {
+    borderRadius: radii.full,
+    height: 6,
+    width: 6,
+  },
+  dotOuter: {
+    alignItems: 'center',
+    borderRadius: radii.full,
+    borderWidth: 2,
     height: 14,
-    marginTop: 3,
+    justifyContent: 'center',
+    marginTop: 2,
     width: 14,
+  },
+  line: {
+    flex: 1,
+    marginVertical: spacing.xs,
+    width: 1.5,
   },
   step: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   title: {
-    color: '#0f172a',
-    fontSize: 15,
-    fontWeight: '900',
+    ...typography.caption,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
 });

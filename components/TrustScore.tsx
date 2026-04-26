@@ -1,45 +1,59 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors, radii, spacing, typography } from '@/constants/theme';
+
 function scoreColor(value: number) {
-  if (value >= 85) {
-    return '#15803d';
-  }
-
-  if (value >= 65) {
-    return '#ca8a04';
-  }
-
-  return '#dc2626';
+  if (value >= 85) return colors.status.success;
+  if (value >= 65) return colors.status.warning;
+  return colors.status.danger;
 }
 
 export function TrustScore({ value }: { value: number }) {
-  const color = scoreColor(value);
+  const accent = scoreColor(value);
+  const percent = Math.min(100, Math.max(0, value));
 
   return (
-    <View style={[styles.gauge, { borderColor: color }]}>
-      <Text style={[styles.value, { color }]}>{value}</Text>
-      <Text style={styles.label}>/100</Text>
+    <View style={styles.container}>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>Indice de confiance</Text>
+        <Text style={[styles.value, { color: accent }]}>{value}</Text>
+      </View>
+      <View style={styles.track}>
+        <View style={[styles.fill, { width: `${percent}%`, backgroundColor: accent }]} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gauge: {
-    alignItems: 'center',
-    aspectRatio: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 999,
-    borderWidth: 7,
-    justifyContent: 'center',
-    width: 96,
+  container: {
+    flex: 1,
+    gap: spacing.sm,
+    minWidth: 120,
+  },
+  fill: {
+    borderRadius: radii.full,
+    height: '100%',
   },
   label: {
-    color: '#64748b',
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.caption,
+    color: colors.text.tertiary,
+  },
+  labelRow: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  track: {
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: radii.full,
+    height: 6,
+    overflow: 'hidden',
+    width: '100%',
   },
   value: {
-    fontSize: 26,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
 });
