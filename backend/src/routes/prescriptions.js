@@ -22,7 +22,7 @@ const prescriptionSchema = z.object({
 });
 
 // POST /api/prescriptions — VET only
-router.post('/', authenticate, requireRole('VET'), validate(prescriptionSchema), (req, res, next) => {
+router.post('/', authenticate, requireRole('VET'), validate(prescriptionSchema), async (req, res, next) => {
     try {
         const { saleId, farmerId, animalLotId, diagnosis, dosage, withdrawalDays } = req.body;
         const db = getDb();
@@ -43,59 +43,89 @@ router.post('/', authenticate, requireRole('VET'), validate(prescriptionSchema),
             return res.status(403).json(err.responseBody);
         }
 
-        const chainResult = sdk.createPrescription({
-            saleId, vetAddress: req.user.walletAddress || req.user.id,
-            farmerAddress: farmer.wallet_address || farmer.id,
-            animalLotId, diagnosis, dosage, withdrawalDays
+        // Create prescription on-chain (async)
+        const chainResult = await sdk.createPrescription({
+            saleId,
+            vetAddress: req.user.walletAddress,
+            farmerAddress: farmer.wallet_address,
+            animalLotId,
+            diagnosis,
+            dosage,
+            withdrawalDays
         });
 
-        db.prepare(`INSERT INTO prescriptions_offchain (rx_id, sale_id, vet_id, farmer_id, animal_lot_id, diagnosis, dosage, withdrawal_days, withdrawal_end, start_date, tx_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        db.prepare(`INSERT INTO prescriptions_offchain 
+            (rx_id, sale_id, vet_id, farmer_id, animal_lot_id, diagnosis, dosage, withdrawal_days, withdrawal_end, start_date, tx_hash) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
             chainResult.rxId, saleId, req.user.id, farmerId, animalLotId,
             diagnosis, dosage, chainResult.effectiveWithdrawal,
             chainResult.withdrawalEnd, new Date().toISOString(), chainResult.txHash
         );
 
         res.status(201).json(success({
-            rxId: chainResult.rxId, txHash: chainResult.txHash,
+            rxId: chainResult.rxId,
+            txHash: chainResult.txHash,
             withdrawalEnd: chainResult.withdrawalEnd,
             effectiveWithdrawalDays: chainResult.effectiveWithdrawal,
             note: chainResult.effectiveWithdrawal > withdrawalDays
-                ? `Withdrawal increased to ${chainResult.effectiveWithdrawal} days (legal minimum for ${sale.atc_code})` : undefined
+                ? `Withdrawal increased to ${chainResult.effectiveWithdrawal} days (legal minimum for ${sale.atc_code})`
+                : undefined
         }, { txHash: chainResult.txHash }));
     } catch (e) { next(e); }
 });
 
 // GET /api/prescriptions/:id — any authenticated
-router.get('/:id', authenticate, (req, res, next) => {
+router.get('/:id', authenticate, async (req, res, next) => {
     try {
         const db = getDb();
         const rx = db.prepare('SELECT * FROM prescriptions_offchain WHERE rx_id = ?').get(req.params.id);
-        if (!rx) { const err = error('NOT_FOUND', 'Prescription not found', 404); return res.status(404).json(err.responseBody); }
-        const chainData = sdk.getPrescription(req.params.id);
+        if (!rx) {
+            const err = error('NOT_FOUND', 'Prescription not found', 404);
+            return res.status(404).json(err.responseBody);
+        }
+
+        const chainData = await sdk.getPrescription(req.params.id);
         res.json(success({
             ...rx,
             chainData: chainData ? {
                 administered: chainData.administered,
-                adminTimestamp: chainData.adminTimestamp ? new Date(chainData.adminTimestamp).toISOString() : null,
-                withdrawalEnd: new Date(chainData.withdrawalEnd).toISOString()
+                adminTimestamp: chainData.adminTimestamp !== '0' ? new Date(Number(chainData.adminTimestamp) * 1000).toISOString() : null,
+                withdrawalEnd: new Date(Number(chainData.withdrawalEnd) * 1000).toISOString()
             } : null
         }));
     } catch (e) { next(e); }
 });
 
 // PUT /api/prescriptions/:id/confirm — FARMER, must own
-router.put('/:id/confirm', authenticate, requireRole('FARMER'), (req, res, next) => {
+router.put('/:id/confirm', authenticate, requireRole('FARMER'), async (req, res, next) => {
     try {
         const db = getDb();
         const rx = db.prepare('SELECT * FROM prescriptions_offchain WHERE rx_id = ?').get(req.params.id);
-        if (!rx) { const err = error('NOT_FOUND', 'Prescription not found', 404); return res.status(404).json(err.responseBody); }
-        if (rx.farmer_id !== req.user.id) { const err = error('FORBIDDEN', 'You can only confirm your own prescriptions', 403); return res.status(403).json(err.responseBody); }
-        if (rx.administered) { const err = error('ALREADY_CONFIRMED', 'Already confirmed', 400); return res.status(400).json(err.responseBody); }
+        if (!rx) {
+            const err = error('NOT_FOUND', 'Prescription not found', 404);
+            return res.status(404).json(err.responseBody);
+        }
+        if (rx.farmer_id !== req.user.id) {
+            const err = error('FORBIDDEN', 'You can only confirm your own prescriptions', 403);
+            return res.status(403).json(err.responseBody);
+        }
+        if (rx.administered) {
+            const err = error('ALREADY_CONFIRMED', 'Already confirmed', 400);
+            return res.status(400).json(err.responseBody);
+        }
 
-        const chainResult = sdk.confirmAdministration(req.params.id);
-        db.prepare('UPDATE prescriptions_offchain SET administered = 1, admin_timestamp = ? WHERE rx_id = ?').run(chainResult.adminTimestamp, req.params.id);
+        // Confirm on-chain — pass farmer wallet address for signing
+        const chainResult = await sdk.confirmAdministration(req.params.id, req.user.walletAddress);
+        db.prepare('UPDATE prescriptions_offchain SET administered = 1, admin_timestamp = ? WHERE rx_id = ?')
+            .run(chainResult.adminTimestamp, req.params.id);
 
-        res.json(success({ confirmed: true, txHash: chainResult.txHash, adminTimestamp: chainResult.adminTimestamp, withdrawalEnd: rx.withdrawal_end }, { txHash: chainResult.txHash }));
+        res.json(success({
+            confirmed: true,
+            txHash: chainResult.txHash,
+            adminTimestamp: chainResult.adminTimestamp,
+            withdrawalEnd: rx.withdrawal_end
+        }, { txHash: chainResult.txHash }));
     } catch (e) { next(e); }
 });
 
@@ -107,7 +137,9 @@ router.get('/farm/:farmerId', authenticate, requireRole('FARMER', 'VET', 'ADMIN'
             return res.status(403).json(err.responseBody);
         }
         const db = getDb();
-        const prescriptions = db.prepare('SELECT * FROM prescriptions_offchain WHERE farmer_id = ? ORDER BY created_at DESC').all(req.params.farmerId);
+        const prescriptions = db.prepare(
+            'SELECT * FROM prescriptions_offchain WHERE farmer_id = ? ORDER BY created_at DESC'
+        ).all(req.params.farmerId);
         res.json(success({ prescriptions }));
     } catch (e) { next(e); }
 });
