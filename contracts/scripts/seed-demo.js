@@ -8,9 +8,9 @@ const fs = require("fs");
  * Creates:
  *  - 4 registered actors (pharmacy, vet, farmer, abattoir)
  *  - 2 drug sales
- *  - 2 prescriptions:
- *    → L-882: Amoxicilline, started 6 days ago → ELIGIBLE ✅
- *    → L-901: Colistine, started 3 days ago → NOT ELIGIBLE ❌ (4 days remaining)
+ *  - 2 prescriptions (both created now, then time-travel +6 days):
+ *    → L-882: Amoxicilline, 5-day min, 6 days elapsed → ELIGIBLE ✅
+ *    → L-901: Colistine, 7-day min, 6 days elapsed → NOT ELIGIBLE ❌ (1 day remaining)
  */
 async function main() {
   const signers = await ethers.getSigners();
@@ -57,16 +57,12 @@ async function main() {
   await (await drugRegistry.registerSale(vetSigner.address, "J01XB01", "BATCH-COL-2024", 10, "Reserve")).wait();
   console.log("  ✅ Sale 2: Colistine J01XB01 (10 doses) → Vet #V-221 [saleId=2]");
 
-  // Step 3: Prescriptions with backdated timestamps via evm_increaseTime
+  // Step 3: Prescriptions — both created at current time, then we advance time forward
   console.log("\n3️⃣  Creating prescriptions...");
 
   const DAY = 24 * 60 * 60;
 
-  // --- L-882: Amoxicilline, legal min 5 days, started 6 days ago → ELIGIBLE ---
-  // Rewind time to 6 days ago for prescription creation
-  await network.provider.send("evm_increaseTime", [-6 * DAY]);
-  await network.provider.send("evm_mine");
-
+  // L-882: Amoxicilline J01CA04 — legal min 5 days, vet specifies 5 → uses 5
   await (await prescriptionRegistry.connect(vetSigner).createPrescription(
     1, farmerSigner.address, "L-882", "Maladie respiratoire bovine", 100, 5
   )).wait();
@@ -75,25 +71,22 @@ async function main() {
   await (await prescriptionRegistry.connect(farmerSigner).confirmAdministration(1)).wait();
   console.log("  ✅ L-882 administration confirmed by farmer");
 
-  // Restore time to now
-  await network.provider.send("evm_increaseTime", [6 * DAY]);
-  await network.provider.send("evm_mine");
-
-  // --- L-901: Colistine, legal min 7 days, started 3 days ago → NOT ELIGIBLE (4 days left) ---
-  await network.provider.send("evm_increaseTime", [-3 * DAY]);
-  await network.provider.send("evm_mine");
-
+  // L-901: Colistine J01XB01 — legal min 7 days, vet inputs 0 → contract enforces 7
   await (await prescriptionRegistry.connect(vetSigner).createPrescription(
-    2, farmerSigner.address, "L-901", "Diarrhée néonatale bovine", 50, 0 // 0 input → uses 7 day legal min
+    2, farmerSigner.address, "L-901", "Diarrhée néonatale bovine", 50, 0
   )).wait();
   console.log("  ✅ Prescription L-901: Colistine (Reserve), 7 days withdrawal [rxId=2]");
 
   await (await prescriptionRegistry.connect(farmerSigner).confirmAdministration(2)).wait();
   console.log("  ✅ L-901 administration confirmed by farmer");
 
-  // Restore time to now
-  await network.provider.send("evm_increaseTime", [3 * DAY]);
+  // Advance time by 6 days:
+  //   L-882 (5-day min): 6 days elapsed → ELIGIBLE ✅
+  //   L-901 (7-day min): 6 days elapsed → NOT ELIGIBLE ❌ (1 day remaining)
+  console.log("\n⏩  Fast-forwarding 6 days...");
+  await network.provider.send("evm_increaseTime", [6 * DAY]);
   await network.provider.send("evm_mine");
+  console.log("  ✅ 6 days elapsed");
 
   // Step 4: Verify eligibility
   console.log("\n4️⃣  Verifying eligibility...");
@@ -110,7 +103,7 @@ async function main() {
   // Step 5: Certify L-882
   console.log("\n5️⃣  Certifying L-882...");
   const certTx = await slaughterGate.certifyLot("L-882", 1);
-  const receipt = await certTx.wait();
+  await certTx.wait();
   const verification = await slaughterGate.getLotVerification("L-882");
   console.log("  ✅ L-882 CERTIFIED");
   console.log("  Certificate hash:", verification.certificateHash);
