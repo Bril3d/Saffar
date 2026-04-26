@@ -50,12 +50,22 @@ async function main() {
   // Step 2: Drug sales
   console.log("\n2️⃣  Creating drug sales...");
   // Sale 1: Amoxicilline (Access class) → for L-882
-  await (await drugRegistry.registerSale(vetSigner.address, "J01CA04", "BATCH-AMX-2024", 50, "Access")).wait();
-  console.log("  ✅ Sale 1: Amoxicilline J01CA04 (50 doses) → Vet #V-221 [saleId=1]");
+  const sale1Tx = await drugRegistry.registerSale(vetSigner.address, "J01CA04", "BATCH-AMX-2024", 50, "Access");
+  const sale1Receipt = await sale1Tx.wait();
+  const sale1Event = sale1Receipt.logs
+    .map(log => { try { return drugRegistry.interface.parseLog(log); } catch { return null; } })
+    .find(e => e && e.name === "SaleRegistered");
+  const saleId1 = sale1Event.args[0];
+  console.log(`  ✅ Sale 1: Amoxicilline J01CA04 (50 doses) → Vet #V-221 [saleId=${saleId1}]`);
 
   // Sale 2: Colistine (Reserve class) → for L-901
-  await (await drugRegistry.registerSale(vetSigner.address, "J01XB01", "BATCH-COL-2024", 10, "Reserve")).wait();
-  console.log("  ✅ Sale 2: Colistine J01XB01 (10 doses) → Vet #V-221 [saleId=2]");
+  const sale2Tx = await drugRegistry.registerSale(vetSigner.address, "J01XB01", "BATCH-COL-2024", 10, "Reserve");
+  const sale2Receipt = await sale2Tx.wait();
+  const sale2Event = sale2Receipt.logs
+    .map(log => { try { return drugRegistry.interface.parseLog(log); } catch { return null; } })
+    .find(e => e && e.name === "SaleRegistered");
+  const saleId2 = sale2Event.args[0];
+  console.log(`  ✅ Sale 2: Colistine J01XB01 (10 doses) → Vet #V-221 [saleId=${saleId2}]`);
 
   // Step 3: Prescriptions — both created at current time, then we advance time forward
   console.log("\n3️⃣  Creating prescriptions...");
@@ -63,21 +73,32 @@ async function main() {
   const DAY = 24 * 60 * 60;
 
   // L-882: Amoxicilline J01CA04 — legal min 5 days, vet specifies 5 → uses 5
-  await (await prescriptionRegistry.connect(vetSigner).createPrescription(
-    1, farmerSigner.address, "L-882", "Maladie respiratoire bovine", 100, 5
-  )).wait();
-  console.log("  ✅ Prescription L-882: Amoxicilline, 5 days withdrawal [rxId=1]");
+  const rx1Tx = await prescriptionRegistry.connect(vetSigner).createPrescription(
+    saleId1, farmerSigner.address, "L-882", "Maladie respiratoire bovine", 100, 5
+  );
+  const rx1Receipt = await rx1Tx.wait();
+  // rxId is the return value — read it from the PrescriptionCreated event
+  const rx1Event = rx1Receipt.logs
+    .map(log => { try { return prescriptionRegistry.interface.parseLog(log); } catch { return null; } })
+    .find(e => e && e.name === "PrescriptionCreated");
+  const rx1Id = rx1Event.args[0]; // uint256 rxId
+  console.log(`  ✅ Prescription L-882: Amoxicilline, 5 days withdrawal [rxId=${rx1Id}]`);
 
-  await (await prescriptionRegistry.connect(farmerSigner).confirmAdministration(1)).wait();
+  await (await prescriptionRegistry.connect(farmerSigner).confirmAdministration(rx1Id)).wait();
   console.log("  ✅ L-882 administration confirmed by farmer");
 
   // L-901: Colistine J01XB01 — legal min 7 days, vet inputs 0 → contract enforces 7
-  await (await prescriptionRegistry.connect(vetSigner).createPrescription(
-    2, farmerSigner.address, "L-901", "Diarrhée néonatale bovine", 50, 0
-  )).wait();
-  console.log("  ✅ Prescription L-901: Colistine (Reserve), 7 days withdrawal [rxId=2]");
+  const rx2Tx = await prescriptionRegistry.connect(vetSigner).createPrescription(
+    saleId2, farmerSigner.address, "L-901", "Diarrhée néonatale bovine", 50, 0
+  );
+  const rx2Receipt = await rx2Tx.wait();
+  const rx2Event = rx2Receipt.logs
+    .map(log => { try { return prescriptionRegistry.interface.parseLog(log); } catch { return null; } })
+    .find(e => e && e.name === "PrescriptionCreated");
+  const rx2Id = rx2Event.args[0];
+  console.log(`  ✅ Prescription L-901: Colistine (Reserve), 7 days withdrawal [rxId=${rx2Id}]`);
 
-  await (await prescriptionRegistry.connect(farmerSigner).confirmAdministration(2)).wait();
+  await (await prescriptionRegistry.connect(farmerSigner).confirmAdministration(rx2Id)).wait();
   console.log("  ✅ L-901 administration confirmed by farmer");
 
   // Advance time by 6 days:
@@ -90,19 +111,19 @@ async function main() {
 
   // Step 4: Verify eligibility
   console.log("\n4️⃣  Verifying eligibility...");
-  const [l882Eligible, l882Days] = await slaughterGate.checkEligibility("L-882", 1);
+  const [l882Eligible, l882Days] = await slaughterGate.checkEligibility("L-882", rx1Id);
   console.log(`  L-882: eligible=${l882Eligible}, daysRemaining=${l882Days}`);
   if (!l882Eligible) throw new Error("❌ SEED ERROR: L-882 should be eligible!");
   console.log("  ✅ L-882 is ELIGIBLE for slaughter");
 
-  const [l901Eligible, l901Days] = await slaughterGate.checkEligibility("L-901", 2);
+  const [l901Eligible, l901Days] = await slaughterGate.checkEligibility("L-901", rx2Id);
   console.log(`  L-901: eligible=${l901Eligible}, daysRemaining=${l901Days}`);
   if (l901Eligible) throw new Error("❌ SEED ERROR: L-901 should NOT be eligible yet!");
   console.log(`  ✅ L-901 is NOT ELIGIBLE (${l901Days} days remaining)`);
 
   // Step 5: Certify L-882
   console.log("\n5️⃣  Certifying L-882...");
-  const certTx = await slaughterGate.certifyLot("L-882", 1);
+  const certTx = await slaughterGate.certifyLot("L-882", rx1Id);
   await certTx.wait();
   const verification = await slaughterGate.getLotVerification("L-882");
   console.log("  ✅ L-882 CERTIFIED");
