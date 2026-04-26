@@ -1,0 +1,159 @@
+{
+  "awarClasses": {
+    "Access": {
+      "description": "Antibiotiques de première intention — à privilégier systématiquement",
+      "risk": "Faible risque de résistance",
+      "policy": "Utilisation libre sur prescription vétérinaire",
+      "codes": ["J01CA", "J01CE", "J01DB"]
+    },
+    "Watch": {
+      "description": "Antibiotiques à usage restreint — risque élevé de résistance",
+      "risk": "Risque élevé de sélection de résistance antimicrobienne",
+      "policy": "Uniquement si Access insuffisant. Documentation obligatoire du justificatif clinique.",
+      "codes": ["J01AA", "J01CR", "J01FA"]
+    },
+    "Reserve": {
+      "description": "Antibiotiques de DERNIER RECOURS — réservés aux infections multi-résistantes",
+      "risk": "CRITIQUE — usage inapproprié menace la santé publique mondiale",
+      "policy": "INTERDIT en première intention. Requiert justification écrite + échec documenté des classes Access et Watch.",
+      "codes": ["J01XB"]
+    }
+  },
+  "drugs": {
+    "J01CA04": {
+      "molecule": "Amoxicilline",
+      "awareClass": "Access",
+      "withdrawalDaysPoultry": 5,
+      "withdrawalDaysEggs": 0,
+      "commonIndications": ["Infections respiratoires", "Colibacillose", "Salmonellose"],
+      "dosage": { "poultry": "10-20 mg/kg/jour", "duration": "3-5 jours" },
+      "contraindications": ["Allergie connue aux pénicillines"],
+      "notes": "Premier choix pour infections respiratoires non compliquées"
+    },
+    "J01CE01": {
+      "molecule": "Benzylpénicilline",
+      "awareClass": "Access",
+      "withdrawalDaysPoultry": 5,
+      "withdrawalDaysEggs": 0,
+      "commonIndications": ["Infections à streptocoques", "Entérococcies"],
+      "dosage": { "poultry": "20,000 UI/kg/jour", "duration": "3-5 jours" },
+      "contraindications": ["Allergie aux bêta-lactamines"],
+      "notes": "Spectre étroit, bon choix si pathogène identifié"
+    },
+    "J01DB01": {
+      "molecule": "Céfalexine",
+      "awareClass": "Access",
+      "withdrawalDaysPoultry": 5,
+      "withdrawalDaysEggs": 3,
+      "commonIndications": ["Infections cutanées", "Infections urinaires"],
+      "dosage": { "poultry": "25-50 mg/kg/jour", "duration": "5-7 jours" },
+      "contraindications": ["Allergie aux céphalosporines"],
+      "notes": "Céphalosporine de 1ère génération"
+    },
+    "J01AA07": {
+      "molecule": "Tétracycline",
+      "awareClass": "Watch",
+      "withdrawalDaysPoultry": 10,
+      "withdrawalDaysEggs": 7,
+      "commonIndications": ["Mycoplasmose", "Chlamydiose", "Pasteurellose"],
+      "dosage": { "poultry": "20-50 mg/kg/jour", "duration": "5-7 jours" },
+      "contraindications": ["Jeunes animaux en croissance (dents/os)"],
+      "notes": "WATCH: Réservé si Access échoue. Risque élevé de résistance croisée."
+    },
+    "J01FA01": {
+      "molecule": "Érythromycine",
+      "awareClass": "Watch",
+      "withdrawalDaysPoultry": 7,
+      "withdrawalDaysEggs": 5,
+      "commonIndications": ["Mycoplasmose chronique", "CRD (Chronic Respiratory Disease)"],
+      "dosage": { "poultry": "20-40 mg/kg/jour", "duration": "5-7 jours" },
+      "contraindications": ["Insuffisance hépatique"],
+      "notes": "WATCH: Alternative si allergie aux pénicillines"
+    },
+    "J01CR02": {
+      "molecule": "Amoxicilline + Acide clavulanique",
+      "awareClass": "Watch",
+      "withdrawalDaysPoultry": 7,
+      "withdrawalDaysEggs": 5,
+      "commonIndications": ["Infections résistantes à l'amoxicilline seule", "E. coli producteur de bêta-lactamase"],
+      "dosage": { "poultry": "12.5-25 mg/kg/jour", "duration": "5-7 jours" },
+      "contraindications": ["Allergie aux pénicillines"],
+      "notes": "WATCH: Uniquement si amoxicilline seule insuffisante"
+    },
+    "J01XB01": {
+      "molecule": "Colistine",
+      "awareClass": "Reserve",
+      "withdrawalDaysPoultry": 7,
+      "withdrawalDaysEggs": 0,
+      "commonIndications": ["Infections multi-résistantes à Gram négatif", "Colibacillose réfractaire"],
+      "dosage": { "poultry": "75,000-100,000 UI/kg/jour", "duration": "3-5 jours MAX" },
+      "contraindications": ["Néphrotoxicité", "Usage prophylactique INTERDIT"],
+      "notes": "⚠️ RESERVE — DERNIER RECOURS UNIQUEMENT. L'OMS classe la Colistine comme antibiotique d'importance critique la plus élevée. Son usage en aviculture contribue directement à l'émergence de résistance chez l'humain (gène mcr-1)."
+    }
+  },
+  "commonDiseases": {
+    "infection_respiratoire": {
+      "name": "Infection respiratoire bactérienne",
+      "symptoms": ["décharge nasale", "toux", "éternuements", "dyspnée", "râles"],
+      "firstLine": "J01CA04",
+      "secondLine": "J01FA01",
+      "lastResort": "J01XB01",
+      "ageFactors": {
+        "poussins_0_14j": "Dosage réduit de 30%, surveillance rapprochée",
+        "poulets_15_35j": "Dosage standard",
+        "pondeuses": "Attention au délai de retrait pour les œufs"
+      }
+    },
+    "colibacillose": {
+      "name": "Colibacillose (E. coli)",
+      "symptoms": ["diarrhée", "perte d'appétit", "mortalité élevée", "lésions hépatiques"],
+      "firstLine": "J01CA04",
+      "secondLine": "J01CR02",
+      "lastResort": "J01XB01",
+      "ageFactors": {
+        "poussins_0_14j": "Très critique — traitement immédiat",
+        "poulets_15_35j": "Antibiogramme recommandé si récidive",
+        "pondeuses": "Impact sur production d'œufs"
+      }
+    },
+    "mycoplasmose": {
+      "name": "Mycoplasmose (Mycoplasma gallisepticum)",
+      "symptoms": ["éternuements chroniques", "sinusite", "conjonctivite", "baisse de ponte"],
+      "firstLine": "J01AA07",
+      "secondLine": "J01FA01",
+      "lastResort": null,
+      "ageFactors": {
+        "poussins_0_14j": "Rare, suspicion d'infection verticale",
+        "poulets_15_35j": "Traitement précoce essentiel",
+        "pondeuses": "Vaccination préventive recommandée"
+      }
+    },
+    "salmonellose": {
+      "name": "Salmonellose",
+      "symptoms": ["diarrhée blanche", "déshydratation", "mortalité poussins"],
+      "firstLine": "J01CA04",
+      "secondLine": "J01AA07",
+      "lastResort": null,
+      "ageFactors": {
+        "poussins_0_14j": "Urgence — mortalité élevée",
+        "poulets_15_35j": "Portage asymptomatique possible",
+        "pondeuses": "Risque zoonotique — surveillance obligatoire"
+      }
+    }
+  },
+  "tunisianRegulations": {
+    "authority": "DGSV — Direction Générale des Services Vétérinaires",
+    "rules": [
+      "Tout antibiotique vétérinaire doit être prescrit par un vétérinaire diplômé",
+      "Le délai de retrait est calculé automatiquement et ne peut être réduit",
+      "L'utilisation prophylactique d'antibiotiques comme promoteurs de croissance est INTERDITE",
+      "Les antibiotiques de classe Reserve nécessitent une justification écrite",
+      "Chaque dispensation doit être traçable de la pharmacie à l'élevage"
+    ],
+    "withdrawalMinimums": {
+      "J01CA04": 5, "J01CE01": 5, "J01DB01": 5,
+      "J01AA07": 10, "J01FA01": 7, "J01CR02": 7,
+      "J01XB01": 7
+    }
+  }
+}

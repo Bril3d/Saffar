@@ -1,8 +1,80 @@
-# Welcome to your Expo app 👋
+# 🌿 SAFAR Chain — Full Stack Repository
+
+> Veterinary antibiotic traceability & farm-to-consumer marketplace.  
+> Built for **Chain & Brain Hackathon Edition 2** (Tunisia, April 2026)
+
+This repository contains both the Frontend (React Native / Expo) and the Backend / AI services.
+
+---
+
+## 🏗️ Architecture
+
+```
+/                 → React Native Frontend (Expo)
+backend/          → Node.js Express API (JWT auth, RBAC, SQLite)
+ai_service/       → Python FastAPI (Isolation Forest, XGBoost)
+shared/           → API contract for team alignment
+scripts/          → Startup & seeding scripts
+```
+
+## 🚀 Backend & AI Quick Start
+
+### 1. Backend (Node.js)
+```bash
+cd backend
+npm install
+cp ../.env.example ../.env
+npm run seed          # Seed demo data
+npm run dev           # Start on port 3000
+```
+
+### 2. AI Service (Python)
+```bash
+cd ai_service
+pip install -r requirements.txt
+python scripts/generate_data.py
+python scripts/train_anomaly.py
+python scripts/train_forecast.py
+python main.py        # Start on port 8001
+```
+
+### 3. Ollama LLM
+```bash
+ollama pull phi3:mini
+ollama serve          # Runs on port 11434
+```
+
+### 4. Start Everything
+```powershell
+.\scripts\start-all.ps1
+```
+
+## 🔐 Demo Credentials
+All users: password `Test1234`
+
+| Role | Email |
+|------|-------|
+| Admin | admin@safar.tn |
+| Pharmacy | pharmacy@safar.tn |
+| Vet | vet@safar.tn |
+| Farmer 1 | farmer1@safar.tn |
+| Farmer 2 | farmer2@safar.tn |
+| Slaughterhouse | abattoir@safar.tn |
+| Consumer 1 | consumer1@safar.tn |
+| Consumer 2 | consumer2@safar.tn |
+
+## 📚 API Documentation
+See [shared/api-contract.md](shared/api-contract.md) for full API specification.
+
+---
+
+## 📱 Frontend Quick Start (Expo)
+
+Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
+### Get started
 
 1. Install dependencies
 
@@ -24,27 +96,3 @@ In the output, you'll find options to open the app in a
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
