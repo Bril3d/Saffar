@@ -41,3 +41,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+
+.agents/
+skills-lock.json
+backend/
+contracts/
+
+.env
