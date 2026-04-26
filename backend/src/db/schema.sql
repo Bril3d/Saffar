@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     ip_address TEXT,
     user_agent TEXT,
     details TEXT,
+    chain_hash TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 

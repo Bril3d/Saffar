@@ -60,7 +60,7 @@ def vet_anomaly(vet_id: str):
 
     score = models['vet_anomaly'].decision_function(X_scaled)[0]
     prediction = models['vet_anomaly'].predict(X_scaled)[0]
-    is_anomaly = prediction == -1
+    is_anomaly = bool(prediction == -1)
 
     # Compute median for comparison
     median_rx = df['prescriptions_per_month'].median()
@@ -98,7 +98,7 @@ def farm_anomaly(farmer_id: str):
 
     score = models['farm_anomaly'].decision_function(X_scaled)[0]
     prediction = models['farm_anomaly'].predict(X_scaled)[0]
-    is_anomaly = prediction == -1
+    is_anomaly = bool(prediction == -1)
 
     return {
         "farmerId": farmer_id,

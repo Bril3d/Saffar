@@ -21,6 +21,16 @@ function getDb() {
         // Run schema
         const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
         db.exec(schema);
+
+        // Migration: add chain_hash column if it doesn't exist
+        try {
+            const cols = db.prepare("PRAGMA table_info(audit_log)").all();
+            if (!cols.find(c => c.name === 'chain_hash')) {
+                db.exec('ALTER TABLE audit_log ADD COLUMN chain_hash TEXT');
+                console.log('[DB] Migration: added chain_hash column to audit_log');
+            }
+        } catch {}
+
         console.log('[DB] SQLite initialized at', DB_PATH);
     }
     return db;

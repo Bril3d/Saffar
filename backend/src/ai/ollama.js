@@ -9,7 +9,7 @@ const path = require('path');
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'phi3:mini';
-const OLLAMA_TIMEOUT = parseInt(process.env.OLLAMA_TIMEOUT) || 30000;
+const OLLAMA_TIMEOUT = parseInt(process.env.OLLAMA_TIMEOUT) || 120000;
 
 // Load prompt templates
 const PROMPTS_DIR = path.join(__dirname, 'prompts');
