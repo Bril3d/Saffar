@@ -1,0 +1,22 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "SAFAR Chain smart contracts — veterinary antibiotic traceability",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage",
+    "test:gas": "REPORT_GAS=true npx hardhat test",
+    "compile": "npx hardhat compile",
+    "node": "npx hardhat node",
+    "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
+    "seed": "npx hardhat run scripts/seed-demo.js --network localhost"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.28.6"
+  }
+}
