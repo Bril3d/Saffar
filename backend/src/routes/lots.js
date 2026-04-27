@@ -9,8 +9,124 @@ const { validate } = require('../middleware/validate');
 const { success, error } = require('../utils/response');
 const { getDb } = require('../db/db');
 const sdk = require('../sdk/safar-sdk');
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
+
+const lotSchema = z.object({
+    name: z.string().min(1),
+    species: z.string().optional(),
+    quantity: z.number().int().min(1).optional()
+});
+
+// POST /api/lots — FARMER only: Create a lot
+router.post('/', authenticate, requireRole('FARMER'), validate(lotSchema), (req, res, next) => {
+    try {
+        const { name, species, quantity } = req.body;
+        const db = getDb();
+        const id = 'LOT-' + uuidv4().substring(0, 8).toUpperCase();
+        
+        db.prepare(`
+            INSERT INTO animal_lots (id, farmer_id, name, species, quantity)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(id, req.user.id, name, species || null, quantity || null);
+
+        res.status(201).json(success({ lotId: id, name, species, quantity }));
+    } catch (e) { next(e); }
+});
+
+// GET /api/lots — VET: list ALL lots from all farmers (for prescription discovery)
+router.get('/', authenticate, requireRole('VET', 'FARMER'), (req, res, next) => {
+    try {
+        const db = getDb();
+        let lots;
+        if (req.user.role === 'FARMER') {
+            lots = db.prepare(`
+                SELECT al.*, u.name as farmer_name, u.email as farmer_email,
+                    (SELECT COUNT(*) FROM prescriptions_offchain p WHERE p.animal_lot_id = al.id) as prescription_count,
+                    (SELECT MAX(p.withdrawal_end) FROM prescriptions_offchain p WHERE p.animal_lot_id = al.id) as latest_withdrawal_end
+                FROM animal_lots al
+                JOIN users u ON al.farmer_id = u.id
+                WHERE al.farmer_id = ?
+                ORDER BY al.created_at DESC
+            `).all(req.user.id);
+        } else {
+            lots = db.prepare(`
+                SELECT al.*, u.name as farmer_name, u.email as farmer_email,
+                    (SELECT COUNT(*) FROM prescriptions_offchain p WHERE p.animal_lot_id = al.id) as prescription_count,
+                    (SELECT MAX(p.withdrawal_end) FROM prescriptions_offchain p WHERE p.animal_lot_id = al.id) as latest_withdrawal_end
+                FROM animal_lots al
+                JOIN users u ON al.farmer_id = u.id
+                ORDER BY al.created_at DESC
+            `).all();
+        }
+        res.json(success({ lots }));
+    } catch (e) { next(e); }
+});
+
+// GET /api/lots/farm/:farmerId — VET or FARMER
+router.get('/farm/:farmerId', authenticate, (req, res, next) => {
+    try {
+        const db = getDb();
+        const lots = db.prepare('SELECT * FROM animal_lots WHERE farmer_id = ? ORDER BY created_at DESC').all(req.params.farmerId);
+        res.json(success({ lots }));
+    } catch (e) { next(e); }
+});
+
+
+// GET /api/lots/abattoir/pending — SLAUGHTERHOUSE: list lots ready for slaughter
+// MUST be before /:lotId routes
+router.get('/abattoir/pending', authenticate, requireRole('SLAUGHTERHOUSE'), (req, res, next) => {
+    try {
+        const db = getDb();
+        const pendingLots = db.prepare(`
+            SELECT 
+                al.id as lot_id,
+                al.name,
+                al.species,
+                al.quantity,
+                al.created_at,
+                u.name as farmer_name,
+                COUNT(p.rx_id) as total_treatments,
+                SUM(CASE WHEN p.administered = 1 THEN 1 ELSE 0 END) as administered_treatments,
+                MAX(p.withdrawal_end) as latest_withdrawal_end,
+                (SELECT rx_id FROM prescriptions_offchain WHERE animal_lot_id = al.id ORDER BY withdrawal_end DESC LIMIT 1) as latest_rx_id
+            FROM animal_lots al
+            JOIN users u ON al.farmer_id = u.id
+            JOIN prescriptions_offchain p ON al.id = p.animal_lot_id
+            LEFT JOIN lot_certifications lc ON al.id = lc.lot_id
+            WHERE lc.lot_id IS NULL
+            GROUP BY al.id
+            HAVING total_treatments > 0 
+               AND total_treatments = administered_treatments
+            ORDER BY latest_withdrawal_end ASC
+        `).all();
+        res.json(success({ pendingLots }));
+    } catch (e) { next(e); }
+});
+
+// GET /api/lots/certifications — SLAUGHTERHOUSE: list own certifications
+// MUST be before /:lotId routes to avoid param collision
+router.get('/certifications', authenticate, requireRole('SLAUGHTERHOUSE'), (req, res, next) => {
+    try {
+        const db = getDb();
+        const certifications = db.prepare(`
+            SELECT
+                lc.lot_id,
+                lc.certificate_hash,
+                lc.eligible,
+                lc.tx_hash,
+                lc.certified_at,
+                (SELECT COUNT(*) FROM prescriptions_offchain p WHERE p.animal_lot_id = lc.lot_id) as total_treatments,
+                (SELECT COUNT(DISTINCT p.farmer_id) FROM prescriptions_offchain p WHERE p.animal_lot_id = lc.lot_id) as distinct_farmers
+            FROM lot_certifications lc
+            WHERE lc.slaughterhouse_id = ?
+            ORDER BY lc.certified_at DESC
+            LIMIT 100
+        `).all(req.user.id);
+        res.json(success({ certifications }));
+    } catch (e) { next(e); }
+});
 
 const eligibilitySchema = z.object({
     rxId: z.string().min(1, 'rxId is required to check eligibility')
@@ -83,6 +199,7 @@ router.get('/:lotId/trace', optionalAuth, async (req, res, next) => {
         ).all(req.params.lotId);
 
         const cert = db.prepare('SELECT * FROM lot_certifications WHERE lot_id = ?').get(req.params.lotId);
+        const lotCreation = db.prepare('SELECT * FROM animal_lots WHERE id = ?').get(req.params.lotId);
         const lotSummary = db.prepare(`
             SELECT
                 COUNT(*) as total_treatments,
@@ -99,6 +216,7 @@ router.get('/:lotId/trace', optionalAuth, async (req, res, next) => {
 
         // PRIVACY FILTER: strip PII for public access
         const safePrescriptions = prescriptionsOffchain.map(p => ({
+            rxId: p.rx_id,
             antibiotic: p.atc_code || 'Unknown',
             awareClass: p.aware_class || 'Unknown',
             treatmentStart: p.start_date || null,
@@ -136,6 +254,12 @@ router.get('/:lotId/trace', optionalAuth, async (req, res, next) => {
                 distinctFarmers: Number(lotSummary?.distinct_farmers || 0),
                 linked: Number(lotSummary?.distinct_vets || 0) > 0 && Number(lotSummary?.distinct_farmers || 0) > 0
             },
+            lotCreation: lotCreation ? {
+                name: lotCreation.name,
+                species: lotCreation.species,
+                quantity: lotCreation.quantity,
+                createdAt: lotCreation.created_at
+            } : null,
             prescriptions: safePrescriptions,
             certification: cert ? {
                 certified: true,

@@ -1,13 +1,14 @@
 /**
  * Vet — AI Assistant Screen
+ * Premium chat interface with glassmorphism bubbles and proper icons.
  */
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
-
+import { Colors, Spacing, Radii, Shadows, Fonts } from '@/constants/theme';
 import { askVetAssistant } from '@/services/api';
+import { Home, ClipboardList, Bot, User, Send, Sparkles, AlertTriangle } from 'lucide-react-native';
 
 const suggestions = [
   'Quelle posologie pour l\'Amoxicilline chez les poulets ?',
@@ -18,88 +19,249 @@ const suggestions = [
 export default function AIAssistantScreen() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Bonjour ! Je suis votre assistant IA spécialisé en antibiothérapie vétérinaire. Comment puis-je vous aider ?' },
+    { role: 'assistant', text: 'Bonjour ! Je suis votre assistant IA spécialisé en antibiothérapie vétérinaire et pratiques agricoles. Comment puis-je vous aider ?' },
   ]);
 
   const sendMessage = async (msg: string) => {
     if (!msg.trim() || loading) return;
-    setMessages(prev => [...prev, { role: 'user', text: msg }]);
+    const userMsg = msg.trim();
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setQuery('');
     setLoading(true);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     try {
-      const res = await askVetAssistant(msg);
+      const res = await askVetAssistant(userMsg);
       let text = res.recommendation;
       if (res.guardrails?.warnings?.length) {
-        text += '\n\n⚠️ ' + res.guardrails.warnings.join('\n⚠️ ');
+        const warningsText = res.guardrails.warnings.map((w: any) => w.message || w).join('\n⚠️ ');
+        text += '\n\n⚠️ ' + warningsText;
       }
-      text += '\n\n_' + res.disclaimer + '_';
+      if (res.disclaimer) {
+        text += '\n\n_' + res.disclaimer + '_';
+      }
       setMessages(prev => [...prev, { role: 'assistant', text }]);
     } catch (err: any) {
-      setMessages(prev => [...prev, { role: 'assistant', text: '❌ ' + (err?.response?.data?.error?.message || err?.message || 'Service IA indisponible') }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: (err?.response?.data?.error?.message || err?.message || 'Service IA indisponible') }]);
     } finally {
       setLoading(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={s.title}>🤖 Assistant IA</Text>
-        <Text style={s.subtitle}>Powered by Ollama · Modèle local</Text>
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.aiAvatarSmall}>
+            <Bot size={20} color={Colors.primary} />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>Assistant IA</Text>
+            <Text style={styles.headerSub}>Powered by Ollama · Local</Text>
+          </View>
+        </View>
+        <View style={styles.onlineDot} />
+      </View>
 
+      <ScrollView 
+        ref={scrollRef}
+        contentContainerStyle={styles.scroll} 
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+      >
         {/* Messages */}
         {messages.map((msg, i) => (
-          <View key={i} style={[s.msgBubble, msg.role === 'user' ? s.userBubble : s.aiBubble]}>
-            {msg.role === 'assistant' && <Text style={s.aiAvatar}>🤖</Text>}
-            <Text style={[s.msgText, msg.role === 'user' && s.userText]}>{msg.text}</Text>
+          <View key={i} style={[styles.msgRow, msg.role === 'user' && styles.msgRowUser]}>
+            {msg.role === 'assistant' && (
+              <View style={styles.aiBubbleAvatar}>
+                <Bot size={18} color={Colors.primary} />
+              </View>
+            )}
+            <View style={[styles.msgBubble, msg.role === 'user' ? styles.userBubble : styles.aiBubble]}>
+              <Text style={[styles.msgText, msg.role === 'user' && styles.userText]}>{msg.text}</Text>
+            </View>
           </View>
         ))}
 
-        {/* Suggestions */}
-        <Text style={s.sugLabel}>Suggestions</Text>
-        {suggestions.map((s2, i) => (
-          <TouchableOpacity key={i} style={s.sugChip} onPress={() => sendMessage(s2)}>
-            <Text style={s.sugText}>💡 {s2}</Text>
-          </TouchableOpacity>
-        ))}
+        {loading && (
+          <View style={[styles.msgRow]}>
+            <View style={styles.aiBubbleAvatar}>
+              <Bot size={18} color={Colors.primary} />
+            </View>
+            <View style={[styles.msgBubble, styles.aiBubble, { paddingVertical: 16 }]}>
+              <View style={styles.typingDots}>
+                <View style={[styles.dot, { opacity: 0.4 }]} />
+                <View style={[styles.dot, { opacity: 0.6 }]} />
+                <View style={[styles.dot, { opacity: 0.8 }]} />
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Suggestions - only show if one message */}
+        {messages.length <= 1 && (
+          <View style={styles.suggestionsContainer}>
+            <View style={styles.sugHeader}>
+              <Sparkles size={16} color={Colors.primary} />
+              <Text style={styles.sugLabel}>Suggestions</Text>
+            </View>
+            {suggestions.map((s2, i) => (
+              <TouchableOpacity key={i} style={styles.sugChip} onPress={() => sendMessage(s2)} activeOpacity={0.7}>
+                <Text style={styles.sugText}>{s2}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Input */}
-      <View style={s.inputBar}>
-        <TextInput style={s.input} placeholder="Posez votre question..." placeholderTextColor={Colors.outline} value={query} onChangeText={setQuery} />
-        <TouchableOpacity style={s.sendBtn} onPress={() => sendMessage(query)}><Text style={s.sendIcon}>↑</Text></TouchableOpacity>
+      <View style={styles.inputBar}>
+        <TextInput 
+          style={styles.input} 
+          placeholder="Posez votre question..." 
+          placeholderTextColor={Colors.onSurfaceVariant} 
+          value={query} 
+          onChangeText={setQuery}
+          multiline
+          maxLength={500}
+        />
+        <TouchableOpacity 
+          style={[styles.sendBtn, (!query.trim() || loading) && styles.sendBtnDisabled]} 
+          onPress={() => sendMessage(query)}
+          disabled={!query.trim() || loading}
+          activeOpacity={0.8}
+        >
+          {loading ? <ActivityIndicator size="small" color={Colors.onPrimary} /> : <Send size={20} color={Colors.onPrimary} />}
+        </TouchableOpacity>
       </View>
 
-      <View style={s.tabBar}>
-        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(vet)/home')}><Text style={s.tabIcon}>🏠</Text><Text style={s.tabLabel}>Accueil</Text></TouchableOpacity>
-        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(vet)/prescriptions')}><Text style={s.tabIcon}>📋</Text><Text style={s.tabLabel}>Rx</Text></TouchableOpacity>
-        <TouchableOpacity style={s.tab}><Text style={s.tabIconActive}>🤖</Text><Text style={s.tabLabelActive}>IA</Text></TouchableOpacity>
-        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(vet)/profile')}><Text style={s.tabIcon}>👤</Text><Text style={s.tabLabel}>Profil</Text></TouchableOpacity>
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity style={styles.tab} activeOpacity={0.7} onPress={() => router.replace('/(vet)/home')}>
+          <Home size={24} color={Colors.onSurfaceDisabled} />
+          <Text style={styles.tabLabel}>Accueil</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} activeOpacity={0.7} onPress={() => router.replace('/(vet)/prescriptions')}>
+          <ClipboardList size={24} color={Colors.onSurfaceDisabled} />
+          <Text style={styles.tabLabel}>Rx</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} activeOpacity={0.7}>
+          <Bot size={24} color={Colors.primary} />
+          <Text style={styles.tabLabelActive}>IA</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} activeOpacity={0.7} onPress={() => router.replace('/(vet)/profile')}>
+          <User size={24} color={Colors.onSurfaceDisabled} />
+          <Text style={styles.tabLabel}>Profil</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.surface },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: 160 },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.onSurface },
-  subtitle: { fontSize: 13, color: Colors.onSurfaceVariant, marginTop: 2, marginBottom: Spacing.lg },
-  msgBubble: { borderRadius: Radii.lg, padding: Spacing.md, marginBottom: Spacing.sm, maxWidth: '85%' },
-  aiBubble: { backgroundColor: Colors.surfaceContainerLowest, alignSelf: 'flex-start', flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start', ...Shadows.sm },
-  userBubble: { backgroundColor: Colors.primaryContainer, alignSelf: 'flex-end' },
-  aiAvatar: { fontSize: 18, marginTop: 2 },
-  msgText: { fontSize: 14, color: Colors.onSurface, lineHeight: 20, flex: 1 },
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+  
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1, borderBottomColor: Colors.outline,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  aiAvatarSmall: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: Colors.primary + '1A',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.primary + '33',
+  },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: Colors.onSurface },
+  headerSub: { fontSize: 12, color: Colors.onSurfaceVariant, marginTop: 1 },
+  onlineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.success },
+  
+  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: 180 },
+  
+  msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: Spacing.md, gap: Spacing.sm },
+  msgRowUser: { justifyContent: 'flex-end' },
+  
+  aiBubbleAvatar: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: Colors.primary + '1A',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 2,
+  },
+  
+  msgBubble: { borderRadius: Radii.lg, padding: Spacing.md, maxWidth: '78%' },
+  aiBubble: { 
+    backgroundColor: Colors.surface, 
+    borderWidth: 1, borderColor: Colors.outline,
+    borderBottomLeftRadius: 4,
+    ...Shadows.sm
+  },
+  userBubble: { 
+    backgroundColor: Colors.primary, 
+    borderBottomRightRadius: 4,
+    ...Shadows.sm
+  },
+  msgText: { fontSize: 15, color: Colors.onSurface, lineHeight: 22 },
   userText: { color: Colors.onPrimary },
-  sugLabel: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, marginTop: Spacing.lg, marginBottom: Spacing.sm },
-  sugChip: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, padding: Spacing.md, marginBottom: Spacing.sm },
-  sugText: { fontSize: 13, color: Colors.onSurface, lineHeight: 18 },
-  inputBar: { position: 'absolute', bottom: 70, left: 0, right: 0, flexDirection: 'row', paddingHorizontal: Spacing.lg, gap: Spacing.sm, backgroundColor: Colors.surface, paddingVertical: Spacing.sm },
-  input: { flex: 1, backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.full, paddingHorizontal: Spacing.md, paddingVertical: 12, fontSize: 14, color: Colors.onSurface },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primaryContainer, alignItems: 'center', justifyContent: 'center' },
-  sendIcon: { fontSize: 20, fontWeight: '700', color: Colors.onPrimary },
-  tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 10, paddingBottom: 28, justifyContent: 'space-around' },
-  tab: { alignItems: 'center', gap: 2 }, tabIcon: { fontSize: 22, opacity: 0.5 }, tabIconActive: { fontSize: 22 },
-  tabLabel: { fontSize: 10, fontWeight: '500', color: Colors.onSurfaceVariant }, tabLabelActive: { fontSize: 10, fontWeight: '700', color: Colors.primary },
+  
+  typingDots: { flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
+  
+  suggestionsContainer: { marginTop: Spacing.xl },
+  sugHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+  sugLabel: { fontSize: 14, fontWeight: '700', color: Colors.onSurface },
+  sugChip: { 
+    backgroundColor: Colors.surface, 
+    borderRadius: Radii.lg, padding: Spacing.md, 
+    marginBottom: Spacing.sm,
+    borderWidth: 1, borderColor: Colors.outline,
+    ...Shadows.sm
+  },
+  sugText: { fontSize: 14, color: Colors.onSurface, lineHeight: 20 },
+  
+  inputBar: { 
+    position: 'absolute', bottom: 72, left: 0, right: 0, 
+    flexDirection: 'row', 
+    paddingHorizontal: Spacing.lg, gap: Spacing.sm, 
+    backgroundColor: Colors.surface, 
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1, borderTopColor: Colors.outline,
+  },
+  input: { 
+    flex: 1, 
+    backgroundColor: Colors.surfaceContainerLow, 
+    borderRadius: Radii.full, 
+    paddingHorizontal: Spacing.lg, paddingVertical: 14, 
+    fontSize: 15, color: Colors.onSurface,
+    maxHeight: 100,
+    borderWidth: 1, borderColor: Colors.outline,
+  },
+  sendBtn: { 
+    width: 48, height: 48, borderRadius: 24, 
+    backgroundColor: Colors.primary, 
+    alignItems: 'center', justifyContent: 'center',
+    ...Shadows.sm
+  },
+  sendBtnDisabled: { 
+    backgroundColor: Colors.onSurfaceDisabled,
+    opacity: 0.5,
+  },
+  
+  tabBar: { 
+    position: 'absolute', bottom: 0, left: 0, right: 0, 
+    flexDirection: 'row', 
+    backgroundColor: 'rgba(247, 245, 240, 0.9)', 
+    borderTopWidth: 1, borderTopColor: Colors.outline,
+    paddingTop: 8, paddingBottom: 24, 
+    justifyContent: 'center',
+  },
+  tab: { flex: 1, alignItems: 'center', gap: 4, maxWidth: 100 },
+  tabLabel: { fontSize: 10, fontWeight: '500', color: Colors.onSurfaceDisabled },
+  tabLabelActive: { fontSize: 10, fontWeight: '600', color: Colors.primary },
 });

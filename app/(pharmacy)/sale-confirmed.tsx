@@ -7,6 +7,8 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-na
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { CheckCircle2 } from 'lucide-react-native';
+
 
 export default function SaleConfirmedScreen() {
   return (
@@ -15,7 +17,7 @@ export default function SaleConfirmedScreen() {
       <View style={s.content}>
         {/* Success hero */}
         <View style={s.successCircle}>
-          <Text style={s.successIcon}>✅</Text>
+          <CheckCircle2 size={32} color={Colors.primary} />
         </View>
         <Text style={s.title}>Vente Enregistrée</Text>
         <Text style={s.subtitle}>La transaction a été confirmée sur la blockchain</Text>
@@ -23,7 +25,7 @@ export default function SaleConfirmedScreen() {
         {/* On-chain badge */}
         <View style={s.onchainBadge}>
           <View style={s.onchainDot} />
-          <Text style={s.onchainText}>On-chain ✅</Text>
+          <Text style={s.onchainText}>On-chain </Text>
         </View>
 
         {/* Transaction details */}
@@ -36,7 +38,7 @@ export default function SaleConfirmedScreen() {
           </View>
           <View style={s.detailRow}>
             <Text style={s.detailLabel}>Réseau</Text>
-            <Text style={s.detailValue}>SAFAR Chain (Hardhat)</Text>
+            <Text style={s.detailValue}>Farm Care (Hardhat)</Text>
           </View>
           <View style={s.detailRow}>
             <Text style={s.detailLabel}>Confirmations</Text>

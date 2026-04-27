@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
 import { getEligibility } from '@/services/api';
+import { ArrowLeft, AlertTriangle, ScanLine } from 'lucide-react-native';
 
 export default function ScannerScreen() {
   const [lotId, setLotId] = useState('');
@@ -33,57 +34,138 @@ export default function ScannerScreen() {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
-      <View style={s.cameraView}>
-        <View style={s.scanFrame}>
-          <View style={[s.corner, s.tl]} />
-          <View style={[s.corner, s.tr]} />
-          <View style={[s.corner, s.bl]} />
-          <View style={[s.corner, s.br]} />
-        </View>
-        <Text style={s.cameraText}>Placez le QR code dans le cadre</Text>
-        <View style={s.scanLine} />
+      {/* Header inside camera view area */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+          <ArrowLeft size={24} color="#FFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Scanner le Lot</Text>
+        <View style={{ width: 44 }} />
       </View>
 
-      <View style={s.bottomPanel}>
-        <Text style={s.panelTitle}>Saisie manuelle</Text>
-        <View style={s.inputRow}>
-          <TextInput style={[s.input, { flex: 1 }]} placeholder="Lot ID" placeholderTextColor={Colors.outline} value={lotId} onChangeText={setLotId} />
+      <View style={styles.cameraView}>
+        <View style={styles.scanFrame}>
+          <View style={[styles.corner, styles.tl]} />
+          <View style={[styles.corner, styles.tr]} />
+          <View style={[styles.corner, styles.bl]} />
+          <View style={[styles.corner, styles.br]} />
+          <ScanLine size={64} color="rgba(255,255,255,0.2)" />
         </View>
-        <View style={[s.inputRow, { marginTop: Spacing.sm }]}>
-          <TextInput style={[s.input, { flex: 1 }]} placeholder="Rx ID (prescription)" placeholderTextColor={Colors.outline} value={rxId} onChangeText={setRxId} />
+        <Text style={styles.cameraText}>Placez le QR code dans le cadre</Text>
+        <View style={styles.scanLine} />
+      </View>
+
+      <View style={styles.bottomPanel}>
+        <Text style={styles.panelTitle}>Saisie manuelle</Text>
+        
+        <Text style={styles.label}>Lot ID</Text>
+        <View style={styles.inputRow}>
+          <TextInput 
+            style={[styles.input, { flex: 1 }]} 
+            placeholder="Ex: LOT-1234" 
+            placeholderTextColor={Colors.onSurfaceVariant} 
+            value={lotId} 
+            onChangeText={setLotId} 
+          />
         </View>
-        {!!error && <Text style={{ color: Colors.onErrorContainer, fontSize: 13, marginTop: Spacing.sm }}>⚠️ {error}</Text>}
-        <TouchableOpacity style={[s.scanBtn, { marginTop: Spacing.md }, loading && { opacity: 0.7 }]} onPress={handleScan} activeOpacity={0.85} disabled={loading}>
-          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.scanBtnText}>Vérifier l'éligibilité</Text>}
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} style={s.closeBtn}>
-          <Text style={s.closeBtnText}>← Retour</Text>
+        
+        <Text style={styles.label}>Rx ID (Prescription)</Text>
+        <View style={styles.inputRow}>
+          <TextInput 
+            style={[styles.input, { flex: 1 }]} 
+            placeholder="Ex: RX-9876" 
+            placeholderTextColor={Colors.onSurfaceVariant} 
+            value={rxId} 
+            onChangeText={setRxId} 
+          />
+        </View>
+        
+        {!!error && (
+          <View style={styles.errorBox}>
+            <AlertTriangle size={20} color={Colors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+        
+        <TouchableOpacity style={[styles.scanBtn, loading && { opacity: 0.7 }]} onPress={handleScan} activeOpacity={0.85} disabled={loading}>
+          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={styles.scanBtnText}>Vérifier l'éligibilité</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111' },
-  cameraView: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scanFrame: { width: 260, height: 260, position: 'relative' },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  
+  topHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md,
+    position: 'absolute', top: 50, left: 0, right: 0, zIndex: 10,
+  },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFF' },
+
+  cameraView: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100 },
+  scanFrame: { 
+    width: 260, height: 260, position: 'relative', 
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   corner: { position: 'absolute', width: 40, height: 40, borderColor: Colors.primary, borderWidth: 3 },
-  tl: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 12 },
-  tr: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 12 },
-  bl: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 12 },
-  br: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 12 },
-  scanLine: { position: 'absolute', width: 240, height: 2, backgroundColor: Colors.primary, opacity: 0.7 },
-  cameraText: { position: 'absolute', bottom: -40, fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
-  bottomPanel: { backgroundColor: Colors.surfaceContainerLowest, borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: 40 },
-  panelTitle: { fontSize: 15, fontWeight: '700', color: Colors.onSurface, marginBottom: Spacing.md },
+  tl: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 16 },
+  tr: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 16 },
+  bl: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 16 },
+  br: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 16 },
+  scanLine: { position: 'absolute', width: 260, height: 2, backgroundColor: Colors.primary, opacity: 0.8, top: '50%' },
+  cameraText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: Spacing.xl },
+  
+  bottomPanel: { 
+    backgroundColor: Colors.background, 
+    borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, 
+    padding: Spacing.xl, paddingBottom: 40,
+    ...Shadows.lg,
+  },
+  panelTitle: { fontSize: 18, fontWeight: '800', color: Colors.onSurface, marginBottom: Spacing.md },
+  
+  label: { 
+    fontSize: 13, fontWeight: '700', color: Colors.onSurfaceVariant, 
+    textTransform: 'uppercase', letterSpacing: 0.5, 
+    marginBottom: Spacing.xs, marginTop: Spacing.md 
+  },
+  
   inputRow: { flexDirection: 'row', gap: Spacing.sm },
-  input: { flex: 1, backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, paddingHorizontal: Spacing.md, paddingVertical: 14, fontSize: 15, color: Colors.onSurface },
-  scanBtn: { backgroundColor: Colors.primaryContainer, borderRadius: Radii.lg, paddingHorizontal: 20, justifyContent: 'center', ...Shadows.glow(Colors.primaryContainer) },
-  scanBtnText: { fontSize: 15, fontWeight: '700', color: Colors.onPrimary },
-  closeBtn: { marginTop: Spacing.lg, alignItems: 'center' },
-  closeBtnText: { fontSize: 14, fontWeight: '600', color: Colors.primary },
+  input: { 
+    flex: 1, 
+    backgroundColor: Colors.surface, 
+    borderRadius: Radii.lg, 
+    paddingHorizontal: Spacing.md, paddingVertical: 16, 
+    fontSize: 16, color: Colors.onSurface,
+    borderWidth: 1, borderColor: Colors.outline,
+  },
+  
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    backgroundColor: Colors.error + '1A',
+    borderRadius: Radii.md, padding: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  errorText: { fontSize: 14, color: Colors.error, fontWeight: '500', flex: 1 },
+
+  scanBtn: { 
+    backgroundColor: Colors.primary, 
+    borderRadius: Radii.full, 
+    paddingVertical: 18, 
+    alignItems: 'center',
+    marginTop: Spacing.xl,
+    ...Shadows.md
+  },
+  scanBtnText: { fontSize: 17, fontWeight: '700', color: Colors.onPrimary },
 });

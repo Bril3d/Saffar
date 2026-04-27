@@ -34,7 +34,7 @@ export default function ResultEligibleScreen() {
         </View>
 
         <View style={s.heroCard}>
-          <View style={s.heroCircle}><Text style={s.heroIcon}>✅</Text></View>
+          <View style={s.heroCircle}><Text style={s.heroIcon}></Text></View>
           <Text style={s.heroTitle}>ÉLIGIBLE</Text>
           <Text style={s.heroSubtitle}>Ce lot peut être abattu en toute sécurité</Text>
         </View>
@@ -42,10 +42,10 @@ export default function ResultEligibleScreen() {
         <View style={s.detailCard}>
           <View style={s.row}><Text style={s.lbl}>Lot</Text><Text style={s.val}>{params.lotId}</Text></View>
           <View style={s.row}><Text style={s.lbl}>Prescription</Text><Text style={s.val}>{params.rxId}</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Jours restants</Text><Text style={s.val}>{params.daysRemaining} jours ✅</Text></View>
+          <View style={s.row}><Text style={s.lbl}>Jours restants</Text><Text style={s.val}>{params.daysRemaining} jours </Text></View>
         </View>
 
-        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.md }}>⚠️ {error}</Text>}
+        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.md }}>️ {error}</Text>}
 
         <TouchableOpacity style={[s.primaryBtn, loading && { opacity: 0.7 }]} onPress={handleCertify} activeOpacity={0.85} disabled={loading}>
           {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.primaryBtnText}>Confirmer l'abattage</Text>}
@@ -77,7 +77,7 @@ const s = StyleSheet.create({
   hashCard: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, padding: Spacing.md, marginTop: Spacing.md },
   hashLabel: { fontSize: 11, fontWeight: '600', color: Colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   hashValue: { fontSize: 13, fontFamily: 'monospace', color: Colors.onSurface },
-  primaryBtn: { backgroundColor: Colors.primaryContainer, borderRadius: Radii.full, paddingVertical: 18, alignItems: 'center', marginTop: Spacing.xl, ...Shadows.glow(Colors.primaryContainer) },
+  primaryBtn: { backgroundColor: Colors.primary, borderRadius: Radii.full, paddingVertical: 18, alignItems: 'center', marginTop: Spacing.xl, ...Shadows.glow(Colors.primary) },
   primaryBtnText: { fontSize: 17, fontWeight: '700', color: Colors.onPrimary },
   ghostBtn: { marginTop: Spacing.md, alignItems: 'center', paddingVertical: 14 },
   ghostBtnText: { fontSize: 15, fontWeight: '600', color: Colors.primary },

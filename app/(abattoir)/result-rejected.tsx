@@ -20,14 +20,14 @@ export default function ResultRejectedScreen() {
 
         {/* Result hero */}
         <View style={s.heroCard}>
-          <View style={s.heroCircle}><Text style={s.heroIcon}>❌</Text></View>
+          <View style={s.heroCircle}><Text style={s.heroIcon}></Text></View>
           <Text style={s.heroTitle}>NON ÉLIGIBLE</Text>
           <Text style={s.heroSubtitle}>Ce lot ne peut pas être abattu actuellement</Text>
         </View>
 
         {/* Reason */}
         <View style={s.reasonCard}>
-          <Text style={s.reasonTitle}>⚠️ Motif du rejet</Text>
+          <Text style={s.reasonTitle}>️ Motif du rejet</Text>
           <Text style={s.reasonText}>La période de retrait n'est pas terminée. Le lot contient encore des résidus d'antibiotiques au-dessus du seuil autorisé.</Text>
         </View>
 
@@ -37,7 +37,7 @@ export default function ResultRejectedScreen() {
           <View style={s.row}><Text style={s.lbl}>Éleveur</Text><Text style={s.val}>Ferme Sidi Bou</Text></View>
           <View style={s.row}><Text style={s.lbl}>Dernier traitement</Text><Text style={s.val}>Enrofloxacine · 24 Avr</Text></View>
           <View style={s.row}><Text style={s.lbl}>Retrait requis</Text><Text style={s.val}>14 jours</Text></View>
-          <View style={s.row}><Text style={s.lbl}>Retrait réel</Text><Text style={[s.val, { color: Colors.status.rejected }]}>2 jours ❌</Text></View>
+          <View style={s.row}><Text style={s.lbl}>Retrait réel</Text><Text style={[s.val, { color: Colors.status.rejected }]}>2 jours </Text></View>
           <View style={s.row}><Text style={s.lbl}>Jours restants</Text><Text style={[s.val, { color: Colors.status.withdrawal, fontWeight: '800' }]}>J-12</Text></View>
         </View>
 

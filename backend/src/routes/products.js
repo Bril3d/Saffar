@@ -68,13 +68,14 @@ router.get('/farmer/publishable-lots', authenticate, requireRole('FARMER'), (req
             const hasTreatments = Number(lot.total_treatments || 0) > 0;
             const allAdministered = Number(lot.total_treatments || 0) === Number(lot.administered_treatments || 0);
             const noActiveWithdrawal = Number(lot.active_withdrawal_count || 0) === 0;
+            const isCertified = !!lot.certificate_hash;
             return {
                 lotId: lot.lot_id,
                 totalTreatments: Number(lot.total_treatments || 0),
                 administeredTreatments: Number(lot.administered_treatments || 0),
                 latestWithdrawalEnd: lot.latest_withdrawal_end || null,
-                eligibleForMarketplace: hasTreatments && allAdministered && noActiveWithdrawal,
-                certified: !!lot.certificate_hash,
+                eligibleForMarketplace: isCertified || (hasTreatments && allAdministered && noActiveWithdrawal),
+                certified: isCertified,
                 certificateHash: lot.certificate_hash || null
             };
         });

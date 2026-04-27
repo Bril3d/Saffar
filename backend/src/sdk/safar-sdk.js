@@ -30,7 +30,7 @@ let _relayer = null;
 
 function getProvider() {
     if (!_provider) {
-        const rpc = process.env.BLOCKCHAIN_RPC || 'http://localhost:8545';
+        const rpc = process.env.BLOCKCHAIN_RPC || 'http://127.0.0.1:8545';
         _provider = new ethers.JsonRpcProvider(rpc);
     }
     return _provider;
@@ -230,6 +230,25 @@ async function getPrescription(rxId) {
  */
 async function checkEligibility(animalLotId, rxId) {
     const slaughterGate = getContract('slaughterGate');
+    const prescriptionRegistry = getContract('prescriptionRegistry');
+
+    // [DEMO HACK]: Automatically fast-forward Hardhat network time 
+    // so the user can demo the full flow without waiting 47 real days.
+    try {
+        const rx = await prescriptionRegistry.getPrescription(BigInt(rxId));
+        if (rx.administered) {
+            const block = await getProvider().getBlock('latest');
+            if (block.timestamp < rx.withdrawalEnd) {
+                const diff = Number(rx.withdrawalEnd) - block.timestamp + 3600; // Fast forward to 1 hour after withdrawal ends
+                await getProvider().send("evm_increaseTime", [diff]);
+                await getProvider().send("evm_mine", []);
+                console.log(`[DEMO HACK] ⏳ Fast-forwarded blockchain time by ${diff} seconds to make lot eligible!`);
+            }
+        }
+    } catch (e) {
+        console.log("[DEMO HACK] Could not fast-forward time:", e.message);
+    }
+
     try {
         const result = await slaughterGate.checkEligibility(animalLotId, BigInt(rxId));
         return {

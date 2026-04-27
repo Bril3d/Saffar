@@ -75,6 +75,21 @@ router.post('/', authenticate, requireRole('VET'), validate(prescriptionSchema),
     } catch (e) { next(e); }
 });
 
+// GET /api/prescriptions/vet/mine — VET: list own prescriptions
+// MUST be before /:id to avoid param collision
+router.get('/vet/mine', authenticate, requireRole('VET'), (req, res, next) => {
+    try {
+        const db = getDb();
+        const prescriptions = db.prepare(
+            'SELECT * FROM prescriptions_offchain WHERE vet_id = ? ORDER BY created_at DESC'
+        ).all(req.user.id);
+        res.json(success({ prescriptions }));
+    } catch (e) { next(e); }
+});
+
+// GET /api/prescriptions/farm/:farmerId — MUST be before /:id
+// (already defined below, but we keep the ordering note here)
+
 // GET /api/prescriptions/:id — any authenticated
 router.get('/:id', authenticate, async (req, res, next) => {
     try {

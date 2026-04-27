@@ -31,9 +31,17 @@ export default function ConsumerScannerScreen() {
         <Text style={s.panelTitle}>Vérifier un produit</Text>
         <Text style={s.panelSubtitle}>Scannez ou saisissez l'identifiant pour accéder à l'historique complet du produit sur la blockchain</Text>
         <View style={s.inputRow}>
-          <TextInput style={s.input} placeholder="ID produit (ex: PROD-1234)" placeholderTextColor={Colors.outline} value={code} onChangeText={setCode} />
-          <TouchableOpacity style={s.scanBtn} onPress={() => router.push('/(consumer)/traceability')} activeOpacity={0.85}>
-            <Text style={s.scanBtnText}>🔍</Text>
+          <TextInput style={s.input} placeholder="Lot ID (ex: LOT-1234)" placeholderTextColor={Colors.outline} value={code} onChangeText={setCode} />
+          <TouchableOpacity
+            style={s.scanBtn}
+            onPress={() => {
+              if (code.trim()) {
+                router.push({ pathname: '/(consumer)/traceability', params: { lotId: code.trim() } } as any);
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={s.scanBtnText}></Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={() => router.back()} style={s.closeBtn}><Text style={s.closeBtnText}>← Retour</Text></TouchableOpacity>

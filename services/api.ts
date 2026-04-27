@@ -27,7 +27,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 15_000,
+  timeout: 60_000,
 });
 
 // Inject Bearer token on every request
@@ -113,6 +113,11 @@ export async function getFarmerPrescriptions(farmerId: string): Promise<Prescrip
   return unwrap<{ prescriptions: PrescriptionResponse[] }>(res).prescriptions;
 }
 
+export async function getVetPrescriptions(): Promise<PrescriptionResponse[]> {
+  const res = await apiClient.get('/api/prescriptions/vet/mine');
+  return unwrap<{ prescriptions: PrescriptionResponse[] }>(res).prescriptions;
+}
+
 /* ═══════════════════════════════════════════════════
    LOTS (Abattoir / Traceability)
    ═══════════════════════════════════════════════════ */
@@ -129,6 +134,25 @@ export async function certifyLot(lotId: string, rxId: string): Promise<CertifyLo
 
 export async function getTraceability(lotId: string): Promise<TraceResponse> {
   const res = await apiClient.get(`/api/lots/${lotId}/trace`);
+  return unwrap(res);
+}
+
+export async function createLot(input: {
+  name: string;
+  species?: string;
+  quantity?: number;
+}): Promise<{ lotId: string; name: string; species?: string; quantity?: number }> {
+  const res = await apiClient.post('/api/lots', input);
+  return unwrap(res);
+}
+
+export async function getFarmerLots(farmerId: string): Promise<{ lots: any[] }> {
+  const res = await apiClient.get(`/api/lots/farm/${farmerId}`);
+  return unwrap(res);
+}
+
+export async function getAllLots(): Promise<{ lots: any[] }> {
+  const res = await apiClient.get('/api/lots');
   return unwrap(res);
 }
 
@@ -256,5 +280,42 @@ export async function explainTrace(
 
 export async function getAIStatus(): Promise<any> {
   const res = await apiClient.get('/api/ai/status');
+  return unwrap(res);
+}
+
+/* ═══════════════════════════════════════════════════
+   LOT CERTIFICATIONS (Abattoir)
+   ═══════════════════════════════════════════════════ */
+
+export async function getLotCertifications(): Promise<{
+  certifications: Array<{
+    lot_id: string;
+    certificate_hash: string;
+    eligible: number;
+    tx_hash: string;
+    certified_at: string;
+    total_treatments: number;
+    distinct_farmers: number;
+  }>;
+}> {
+  const res = await apiClient.get('/api/lots/certifications');
+  return unwrap(res);
+}
+
+export async function getPendingAbattoirLots(): Promise<{
+  pendingLots: Array<{
+    lot_id: string;
+    name: string;
+    species: string;
+    quantity: number;
+    created_at: string;
+    farmer_name: string;
+    total_treatments: number;
+    administered_treatments: number;
+    latest_withdrawal_end: string;
+    latest_rx_id: string;
+  }>;
+}> {
+  const res = await apiClient.get('/api/lots/abattoir/pending');
   return unwrap(res);
 }

@@ -1,27 +1,73 @@
 /**
  * Consumer — Cart Screen
+ * Cart is stored in-memory (per session). Items are added from product-detail.
+ * "Commander" calls POST /api/orders for each item.
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { createOrder } from '@/services/api';
+import { Home, ScanLine, FileText, User, CheckCircle2 } from 'lucide-react-native';
 
-const cartItems = [
-  { name: 'Poulet Fermier Bio', farm: 'Ferme El Baraka', price: 9.5, qty: 2, trust: 98 },
-  { name: 'Oeufs de Campagne', farm: 'Ferme Sidi Bou', price: 4.2, qty: 1, trust: 95 },
-];
+
+// Simple in-memory cart store (shared via module-level state)
+export type CartItem = {
+  productId: string;
+  name: string;
+  farm: string;
+  price: number;
+  qty: number;
+};
+
+let _cartItems: CartItem[] = [];
+export function getCartItems() { return _cartItems; }
+export function addToCart(item: CartItem) {
+  const existing = _cartItems.find((i) => i.productId === item.productId);
+  if (existing) { existing.qty += item.qty; }
+  else { _cartItems = [..._cartItems, item]; }
+}
+export function clearCart() { _cartItems = []; }
 
 export default function CartScreen() {
-  const total = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
+  const [items, setItems] = useState<CartItem[]>(() => getCartItems());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+
+  const handleOrder = async () => {
+    if (items.length === 0) return;
+    setLoading(true); setError('');
+    try {
+      for (const item of items) {
+        await createOrder({
+          productId: item.productId,
+          quantity: item.qty,
+          deliveryOption: 'PICKUP',
+        });
+      }
+      clearCart();
+      setItems([]);
+      router.replace('/(consumer)/orders');
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message || e?.message || 'Erreur lors de la commande');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={st.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={st.title}>🛒 Mon Panier</Text>
-        {cartItems.map((item, i) => (
-          <View key={i} style={st.card}>
-            <View style={st.emoji}><Text style={{ fontSize: 28 }}>🥩</Text></View>
+        <Text style={st.title}> Mon Panier</Text>
+        {items.length === 0 ? (
+          <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 30 }}>Panier vide</Text>
+        ) : items.map((item, i) => (
+          <View key={item.productId || i} style={st.card}>
+            <View style={st.emoji}><CheckCircle2 size={28} color={Colors.onPrimary} /></View>
             <View style={{ flex: 1 }}>
               <Text style={st.name}>{item.name}</Text>
               <Text style={st.farm}>{item.farm}</Text>
@@ -29,19 +75,22 @@ export default function CartScreen() {
             </View>
           </View>
         ))}
-        <View style={st.summary}>
-          <View style={st.row}><Text style={st.lbl}>Total</Text><Text style={st.val}>{(total+3).toFixed(3)} TND</Text></View>
-        </View>
-        <TouchableOpacity style={st.btn} activeOpacity={0.85}>
-          <Text style={st.btnText}>Commander</Text>
+        {items.length > 0 && (
+          <View style={st.summary}>
+            <View style={st.row}><Text style={st.lbl}>Total</Text><Text style={st.val}>{total.toFixed(3)} TND</Text></View>
+          </View>
+        )}
+        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.sm }}>️ {error}</Text>}
+        <TouchableOpacity style={[st.btn, (loading || items.length === 0) && { opacity: 0.6 }]} activeOpacity={0.85} onPress={handleOrder} disabled={loading || items.length === 0}>
+          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={st.btnText}>Commander</Text>}
         </TouchableOpacity>
       </ScrollView>
       <View style={st.tabBar}>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/home')}><Text style={st.tI}>🏠</Text><Text style={st.tL}>Accueil</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/scanner')}><Text style={st.tI}>📷</Text><Text style={st.tL}>Scanner</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab}><Text style={st.tIA}>🛒</Text><Text style={st.tLA}>Panier</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/orders')}><Text style={st.tI}>📦</Text><Text style={st.tL}>Commandes</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/profile')}><Text style={st.tI}>👤</Text><Text style={st.tL}>Profil</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/home')}><Home size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Accueil</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/scanner')}><ScanLine size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Scanner</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab}><FileText size={24} color={Colors.onSurfaceVariant} /><Text style={st.tLA}>Panier</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/orders')}><FileText size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Commandes</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/profile')}><User size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Profil</Text></TouchableOpacity>
       </View>
     </SafeAreaView>
   );

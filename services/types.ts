@@ -129,6 +129,12 @@ export interface TraceResponse {
     distinctFarmers: number;
     linked: boolean;
   };
+  lotCreation?: {
+    name: string;
+    species: string | null;
+    quantity: number | null;
+    createdAt: string;
+  } | null;
   prescriptions: Array<{
     antibiotic: string;
     awareClass: string;

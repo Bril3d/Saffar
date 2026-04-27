@@ -1,51 +1,75 @@
 /**
- * Abattoir — Scan History Screen
+ * Abattoir — Scan History Screen (dynamic from API)
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { getLotCertifications } from '@/services/api';
+import { Home, ScanLine, History, User } from 'lucide-react-native';
 
-const scans = [
-  { lot: '#1234', farm: 'Ferme El Baraka', result: 'eligible' as const, date: '26 Avr', time: '09:15' },
-  { lot: '#1235', farm: 'Ferme Sidi Bou', result: 'rejected' as const, date: '26 Avr', time: '09:45' },
-  { lot: '#1236', farm: 'Ferme Al Waha', result: 'eligible' as const, date: '26 Avr', time: '10:30' },
-  { lot: '#1230', farm: 'Ferme Ennour', result: 'eligible' as const, date: '25 Avr', time: '08:22' },
-  { lot: '#1229', farm: 'Ferme Sidi Bou', result: 'rejected' as const, date: '25 Avr', time: '11:10' },
-  { lot: '#1228', farm: 'Ferme El Baraka', result: 'eligible' as const, date: '24 Avr', time: '09:00' },
-];
+
+type Certification = {
+  lot_id: string;
+  certificate_hash: string;
+  eligible: number;
+  tx_hash: string;
+  certified_at: string;
+  total_treatments: number;
+  distinct_farmers: number;
+};
 
 export default function HistoryScreen() {
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getLotCertifications()
+      .then((r) => setCertifications(r.certifications))
+      .catch(() => setCertifications([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={s.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>Historique des Scans</Text>
-        <Text style={s.subtitle}>{scans.length} scans récents</Text>
-        {scans.map((scan, i) => (
-          <View key={i} style={s.card}>
-            <View style={[s.dot, { backgroundColor: scan.result === 'eligible' ? Colors.status.certified : Colors.status.rejected }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.lot}>Lot {scan.lot}</Text>
-              <Text style={s.farm}>{scan.farm}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <View style={[s.resultBadge, { backgroundColor: scan.result === 'eligible' ? '#E8F5E9' : '#FFEBEE' }]}>
-                <Text style={[s.resultText, { color: scan.result === 'eligible' ? Colors.status.certified : Colors.status.rejected }]}>
-                  {scan.result === 'eligible' ? '✅ Éligible' : '❌ Rejeté'}
-                </Text>
+        <Text style={s.subtitle}>{certifications.length} certifications</Text>
+        {loading ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
+        ) : certifications.length === 0 ? (
+          <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 30 }}>Aucun historique</Text>
+        ) : certifications.map((cert, i) => {
+          const result = cert.eligible === 1 ? 'eligible' : 'rejected';
+          const certDate = new Date(cert.certified_at);
+          const dateStr = certDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+          const timeStr = certDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          return (
+            <View key={cert.lot_id || i} style={s.card}>
+              <View style={[s.dot, { backgroundColor: result === 'eligible' ? Colors.status.certified : Colors.status.rejected }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.lot}>Lot {cert.lot_id}</Text>
+                <Text style={s.farm}>{cert.total_treatments} traitement(s) · {cert.distinct_farmers} éleveur(s)</Text>
               </View>
-              <Text style={s.time}>{scan.date} · {scan.time}</Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <View style={[s.resultBadge, { backgroundColor: result === 'eligible' ? '#E8F5E9' : '#FFEBEE' }]}>
+                  <Text style={[s.resultText, { color: result === 'eligible' ? Colors.status.certified : Colors.status.rejected }]}>
+                    {result === 'eligible' ? ' Éligible' : ' Rejeté'}
+                  </Text>
+                </View>
+                <Text style={s.time}>{dateStr} · {timeStr}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
       <View style={s.tabBar}>
-        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(abattoir)/home')}><Text style={s.tabIcon}>🏠</Text><Text style={s.tabLabel}>Accueil</Text></TouchableOpacity>
-        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(abattoir)/scanner')}><Text style={s.tabIcon}>📷</Text><Text style={s.tabLabel}>Scanner</Text></TouchableOpacity>
-        <TouchableOpacity style={s.tab}><Text style={s.tabIconActive}>📋</Text><Text style={s.tabLabelActive}>Historique</Text></TouchableOpacity>
-        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(abattoir)/profile')}><Text style={s.tabIcon}>👤</Text><Text style={s.tabLabel}>Profil</Text></TouchableOpacity>
+        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(abattoir)/home')}><Home size={24} color={Colors.onSurfaceVariant} /><Text style={s.tabLabel}>Accueil</Text></TouchableOpacity>
+        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(abattoir)/scanner')}><ScanLine size={24} color={Colors.onSurfaceVariant} /><Text style={s.tabLabel}>Scanner</Text></TouchableOpacity>
+        <TouchableOpacity style={s.tab}><History size={24} color={Colors.primary} /><Text style={s.tabLabelActive}>Historique</Text></TouchableOpacity>
+        <TouchableOpacity style={s.tab} onPress={() => router.replace('/(abattoir)/profile')}><User size={24} color={Colors.onSurfaceVariant} /><Text style={s.tabLabel}>Profil</Text></TouchableOpacity>
       </View>
     </SafeAreaView>
   );

@@ -18,6 +18,16 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Animal Lots: Created by Farmer
+CREATE TABLE IF NOT EXISTS animal_lots (
+    id TEXT PRIMARY KEY,
+    farmer_id TEXT NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL,
+    species TEXT,
+    quantity INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Products: marketplace listings linked to blockchain-certified lots
 CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,

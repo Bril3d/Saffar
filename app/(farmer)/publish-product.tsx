@@ -4,13 +4,14 @@
  */
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Radii, Shadows, Fonts } from '@/constants/theme';
 import { getFarmerPublishableLots, publishProduct } from '@/services/api';
 import type { PublishableLotResponse } from '@/services/types';
+import { ArrowLeft, ShieldCheck, CheckCircle2, AlertTriangle, Tag, Scale } from 'lucide-react-native';
 
 const categoryOptions = [
   { label: 'Poulets', value: 'POULTRY_MEAT' },
@@ -22,7 +23,8 @@ const categoryOptions = [
 ] as const;
 
 export default function PublishProductScreen() {
-  const [selectedLotId, setSelectedLotId] = useState('');
+  const params = useLocalSearchParams<{ prefillLotId?: string }>();
+  const [selectedLotId, setSelectedLotId] = useState(params.prefillLotId || '');
   const [lots, setLots] = useState<PublishableLotResponse[]>([]);
   const [lotsLoading, setLotsLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -39,12 +41,12 @@ export default function PublishProductScreen() {
         const eligibleLots = res.lots.filter((lot) => lot.eligibleForMarketplace);
         setLots(eligibleLots);
         if (eligibleLots.length > 0) {
-          setSelectedLotId((prev) => prev || eligibleLots[0].lotId);
+          setSelectedLotId((prev) => prev || (params.prefillLotId ? params.prefillLotId : eligibleLots[0].lotId));
         }
       })
       .catch(() => setLots([]))
       .finally(() => setLotsLoading(false));
-  }, []);
+  }, [params.prefillLotId]);
 
   const selectedLot = lots.find((lot) => lot.lotId === selectedLotId);
   const netPerUnit = Number(price || '0') * 0.9;
@@ -67,110 +69,249 @@ export default function PublishProductScreen() {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backIcon}>←</Text></TouchableOpacity>
-          <Text style={s.headerTitle}>Publier un Produit</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+          <ArrowLeft size={24} color={Colors.onSurface} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Publier un Produit</Text>
+        <View style={{ width: 44 }} />
+      </View>
 
-        <Text style={s.label}>Lot éligible</Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Text style={styles.label}>Lot éligible au Marketplace</Text>
         {lotsLoading ? (
           <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.md }} />
         ) : lots.length === 0 ? (
-          <Text style={s.emptyLotsText}>Aucun lot éligible disponible. Confirmez d'abord les traitements et la fin du délai de retrait.</Text>
+          <View style={styles.emptyLots}>
+            <AlertTriangle size={24} color={Colors.warning} />
+            <Text style={styles.emptyLotsText}>Aucun lot éligible. Confirmez d'abord les traitements et attendez la fin du délai de retrait.</Text>
+          </View>
         ) : (
           lots.map((lot) => (
             <TouchableOpacity
               key={lot.lotId}
-              style={[s.lotCard, selectedLotId === lot.lotId && s.lotCardActive]}
+              style={[styles.lotCard, selectedLotId === lot.lotId && styles.lotCardActive]}
               onPress={() => setSelectedLotId(lot.lotId)}
-              activeOpacity={0.85}
+              activeOpacity={0.8}
             >
-              <View style={s.lotInfo}>
-                <Text style={s.lotName}>Lot {lot.lotId}</Text>
-                <Text style={s.lotMeta}>
-                  {lot.administeredTreatments}/{lot.totalTreatments} traitements confirmes
+              <View style={styles.lotInfo}>
+                <Text style={styles.lotName}>Lot #{lot.lotId}</Text>
+                <Text style={styles.lotMeta}>
+                  {lot.administeredTreatments}/{lot.totalTreatments} traitements confirmés
                 </Text>
               </View>
-              <View style={s.certBadge}>
-                <Text style={s.certText}>{lot.certified ? 'On-chain' : 'Trace'}</Text>
+              <View style={[styles.certBadge, lot.certified && styles.certBadgeCertified]}>
+                {lot.certified ? <ShieldCheck size={14} color={Colors.success} /> : null}
+                <Text style={[styles.certText, lot.certified && { color: Colors.success }]}>{lot.certified ? 'On-chain' : 'Trace'}</Text>
               </View>
             </TouchableOpacity>
           ))
         )}
 
-        <Text style={s.label}>Titre du produit</Text>
-        <TextInput style={s.input} placeholder="Ex: Poulet Fermier Bio" placeholderTextColor={Colors.outline} value={title} onChangeText={setTitle} />
+        <Text style={styles.label}>Titre du produit</Text>
+        <TextInput style={styles.input} placeholder="Ex: Poulet Fermier Bio" placeholderTextColor={Colors.onSurfaceVariant} value={title} onChangeText={setTitle} />
 
-        <Text style={s.label}>Catégorie</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, marginBottom: Spacing.sm }}>
+        <Text style={styles.label}>Catégorie</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingBottom: Spacing.sm }}>
           {categoryOptions.map((c) => (
-            <TouchableOpacity key={c.value} style={[s.chip, category === c.value && s.chipActive]} onPress={() => setCategory(c.value)}>
-              <Text style={[s.chipText, category === c.value && s.chipTextActive]}>{c.label}</Text>
+            <TouchableOpacity key={c.value + c.label} style={[styles.chip, category === c.value && styles.chipActive]} onPress={() => setCategory(c.value)} activeOpacity={0.8}>
+              <Text style={[styles.chipText, category === c.value && styles.chipTextActive]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <Text style={s.label}>Prix (TND/kg)</Text>
-        <View style={s.priceRow}>
-          <TextInput style={[s.input, { flex: 1 }]} placeholder="0.000" placeholderTextColor={Colors.outline} value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
-          <Text style={s.priceSuffix}>TND / kg</Text>
+        <Text style={styles.label}>Prix (TND/kg)</Text>
+        <View style={styles.priceRow}>
+          <TextInput style={[styles.input, { flex: 1 }]} placeholder="0.000" placeholderTextColor={Colors.onSurfaceVariant} value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
+          <View style={styles.priceSuffixBox}>
+            <Tag size={14} color={Colors.onSurfaceVariant} />
+            <Text style={styles.priceSuffix}>TND/kg</Text>
+          </View>
         </View>
 
-        <Text style={s.label}>Quantité disponible (kg)</Text>
-        <TextInput style={s.input} placeholder="Ex: 50" placeholderTextColor={Colors.outline} value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
-
-        <Text style={s.netPreview}>TND net par unite: {Number.isFinite(netPerUnit) ? netPerUnit.toFixed(3) : '0.000'}</Text>
-
-        <Text style={s.label}>Description</Text>
-        <TextInput style={[s.input, s.textarea]} placeholder="Décrivez votre produit..." placeholderTextColor={Colors.outline} value={desc} onChangeText={setDesc} multiline numberOfLines={4} textAlignVertical="top" />
-
-        <View style={s.blockchainInfo}>
-          <Text style={s.blockchainIcon}>🔗</Text>
-          <Text style={s.blockchainText}>Le produit sera lié à la traçabilité blockchain complète</Text>
+        <Text style={styles.label}>Quantité disponible (kg)</Text>
+        <View style={styles.priceRow}>
+          <TextInput style={[styles.input, { flex: 1 }]} placeholder="Ex: 50" placeholderTextColor={Colors.onSurfaceVariant} value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
+          <View style={styles.priceSuffixBox}>
+            <Scale size={14} color={Colors.onSurfaceVariant} />
+            <Text style={styles.priceSuffix}>kg</Text>
+          </View>
         </View>
 
-        {!!error && <Text style={{ color: Colors.onErrorContainer, textAlign: 'center', marginTop: Spacing.sm }}>⚠️ {error}</Text>}
+        {Number(price) > 0 && (
+          <View style={styles.netPreviewBox}>
+            <Text style={styles.netPreviewLabel}>Revenu net estimé par unité:</Text>
+            <Text style={styles.netPreviewValue}>{netPerUnit.toFixed(3)} TND</Text>
+          </View>
+        )}
 
-        <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.7 }]} activeOpacity={0.85} onPress={handlePublish} disabled={loading || lotsLoading || lots.length === 0}>
-          {loading ? <ActivityIndicator color={Colors.onPrimary} /> : <Text style={s.submitText}>Publier sur le Marketplace</Text>}
-        </TouchableOpacity>
+        <Text style={styles.label}>Description</Text>
+        <TextInput style={[styles.input, styles.textarea]} placeholder="Décrivez votre produit..." placeholderTextColor={Colors.onSurfaceVariant} value={desc} onChangeText={setDesc} multiline numberOfLines={4} textAlignVertical="top" />
+
+        <View style={styles.blockchainInfo}>
+          <ShieldCheck size={24} color={Colors.primary} />
+          <Text style={styles.blockchainText}>Le produit sera lié à la traçabilité blockchain complète du lot sélectionné</Text>
+        </View>
+
+        {!!error && (
+          <View style={styles.errorBox}>
+            <AlertTriangle size={20} color={Colors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
       </ScrollView>
+
+      {/* Fixed Bottom Action */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity 
+          style={[styles.submitBtn, (loading || lotsLoading || lots.length === 0) && styles.submitBtnDisabled]} 
+          activeOpacity={0.85} 
+          onPress={handlePublish} 
+          disabled={loading || lotsLoading || lots.length === 0}
+        >
+          {loading ? (
+            <ActivityIndicator color={Colors.onPrimary} />
+          ) : (
+            <>
+              <CheckCircle2 size={24} color={Colors.onPrimary} />
+              <Text style={styles.submitText}>Publier sur le Marketplace</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.surfaceContainerLowest },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.lg },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surfaceContainerLow, alignItems: 'center', justifyContent: 'center' },
-  backIcon: { fontSize: 20, color: Colors.onSurface },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+  
+  header: { 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    borderBottomWidth: 1, borderBottomColor: Colors.outline,
+    backgroundColor: Colors.surface,
+  },
+  backBtn: { 
+    width: 44, height: 44, borderRadius: 22, 
+    backgroundColor: Colors.surface, 
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.outline,
+  },
   headerTitle: { fontSize: 18, fontWeight: '800', color: Colors.onSurface },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: Spacing.sm, marginTop: Spacing.lg },
-  lotCard: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, padding: Spacing.md, marginBottom: Spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  lotCardActive: { backgroundColor: Colors.primaryFixed },
+  
+  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: 120 },
+  
+  label: { 
+    fontSize: 13, fontWeight: '700', color: Colors.onSurfaceVariant, 
+    textTransform: 'uppercase', letterSpacing: 0.5, 
+    marginBottom: Spacing.xs, marginTop: Spacing.lg 
+  },
+  
+  emptyLots: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    backgroundColor: '#FFF8E1', borderRadius: Radii.md, padding: Spacing.md,
+    borderWidth: 1, borderColor: '#FFECB3',
+  },
+  emptyLotsText: { fontSize: 13, color: '#F57F17', flex: 1, lineHeight: 20 },
+  
+  lotCard: { 
+    backgroundColor: Colors.surface, 
+    borderRadius: Radii.lg, padding: Spacing.lg, 
+    marginBottom: Spacing.sm, 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.outline,
+    ...Shadows.sm
+  },
+  lotCardActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '0A' },
   lotInfo: { flex: 1 },
   lotName: { fontSize: 15, fontWeight: '700', color: Colors.onSurface },
-  lotMeta: { fontSize: 12, color: Colors.onSurfaceVariant, marginTop: 2 },
-  certBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.full },
-  certText: { fontSize: 11, fontWeight: '700', color: Colors.status.certified },
+  lotMeta: { fontSize: 13, color: Colors.onSurfaceVariant, marginTop: 4 },
+  certBadge: { 
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: Colors.surfaceContainerLow, 
+    paddingHorizontal: 10, paddingVertical: 4, 
+    borderRadius: Radii.full 
+  },
+  certBadgeCertified: { backgroundColor: Colors.success + '1A' },
+  certText: { fontSize: 12, fontWeight: '700', color: Colors.onSurfaceVariant },
+  
+  input: { 
+    backgroundColor: Colors.surface, 
+    borderRadius: Radii.lg, 
+    paddingHorizontal: Spacing.md, paddingVertical: 14, 
+    fontSize: 15, color: Colors.onSurface,
+    borderWidth: 1, borderColor: Colors.outline,
+  },
+  textarea: { minHeight: 100, paddingTop: 14 },
+  
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  input: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, paddingHorizontal: Spacing.md, paddingVertical: 14, fontSize: 15, color: Colors.onSurface },
-  textarea: { minHeight: 100 },
-  priceSuffix: { fontSize: 14, fontWeight: '600', color: Colors.onSurfaceVariant },
-  blockchainInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.primaryFixed, borderRadius: Radii.lg, padding: Spacing.md, marginTop: Spacing.lg },
-  blockchainIcon: { fontSize: 18 },
-  blockchainText: { flex: 1, fontSize: 12, color: Colors.primary, lineHeight: 18 },
-  submitBtn: { backgroundColor: Colors.primaryContainer, borderRadius: Radii.full, paddingVertical: 18, alignItems: 'center', marginTop: Spacing.xl, ...Shadows.glow(Colors.primaryContainer) },
-  submitText: { fontSize: 17, fontWeight: '700', color: Colors.onPrimary },
-  chip: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.full, paddingHorizontal: 16, paddingVertical: 8 },
-  chipActive: { backgroundColor: Colors.primaryContainer },
+  priceSuffixBox: { 
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: Colors.surfaceContainerLow, 
+    paddingHorizontal: 12, paddingVertical: 10, 
+    borderRadius: Radii.lg,
+    borderWidth: 1, borderColor: Colors.outline,
+  },
+  priceSuffix: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant },
+  
+  netPreviewBox: { 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: Colors.success + '0A', 
+    borderRadius: Radii.md, padding: Spacing.md, 
+    marginTop: Spacing.md,
+    borderWidth: 1, borderColor: Colors.success + '33',
+  },
+  netPreviewLabel: { fontSize: 13, color: Colors.onSurfaceVariant },
+  netPreviewValue: { fontSize: 16, fontWeight: '800', color: Colors.success },
+  
+  chip: { 
+    backgroundColor: Colors.surface, 
+    borderRadius: Radii.full, 
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderWidth: 1, borderColor: Colors.outline,
+  },
+  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant },
   chipTextActive: { color: Colors.onPrimary },
-  emptyLotsText: { fontSize: 13, color: Colors.onSurfaceVariant, marginBottom: Spacing.sm },
-  netPreview: { fontSize: 13, color: Colors.onSurfaceVariant, marginTop: Spacing.sm, fontWeight: '600' },
+  
+  blockchainInfo: { 
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md, 
+    backgroundColor: Colors.primary + '0A', 
+    borderRadius: Radii.lg, padding: Spacing.md, 
+    marginTop: Spacing.xl,
+    borderWidth: 1, borderColor: Colors.primary + '33',
+  },
+  blockchainText: { flex: 1, fontSize: 13, color: Colors.primary, lineHeight: 20, fontWeight: '600' },
+  
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    backgroundColor: Colors.error + '1A',
+    borderRadius: Radii.md, padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  errorText: { fontSize: 14, color: Colors.error, fontWeight: '500', flex: 1 },
+
+  bottomBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 32,
+    borderTopWidth: 1, borderTopColor: Colors.outline,
+    ...Shadows.lg,
+  },
+  submitBtn: { 
+    backgroundColor: Colors.primary, 
+    borderRadius: Radii.full, 
+    paddingVertical: 18, 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, 
+    ...Shadows.md 
+  },
+  submitBtnDisabled: {
+    backgroundColor: Colors.onSurfaceDisabled,
+    opacity: 0.5,
+  },
+  submitText: { fontSize: 17, fontWeight: '700', color: Colors.onPrimary },
 });

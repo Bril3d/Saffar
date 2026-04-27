@@ -79,17 +79,15 @@ router.post('/assistant/vet', authenticate, requireRole('VET'), validate(vetAssi
             disclaimer: 'Ceci est une recommandation IA basée sur les données disponibles. Le vétérinaire prend la décision finale.'
         }));
     } catch (e) {
-        if (e.statusCode === 503) {
-            return res.status(503).json(error('AI_UNAVAILABLE', 'IA temporairement indisponible', 503).responseBody);
-        }
-        if (e.statusCode === 504) {
-            // Timeout: return fallback
+        if (e.statusCode === 503 || e.statusCode === 504) {
+            // Ollama offline or timed out: return guardrails fallback
             const fallback = guardrails.getFallback('vet');
             return res.json(success({
                 recommendation: fallback,
                 model: 'fallback',
-                guardrails: { usedFallback: true, reason: 'TIMEOUT' },
-                disclaimer: 'Réponse de secours — le modèle IA est temporairement surchargé.'
+                ragContext: { diseaseMatches: [] },
+                guardrails: { warnings: [], usedFallback: true, reason: e.statusCode === 503 ? 'AI_OFFLINE' : 'TIMEOUT' },
+                disclaimer: 'Réponse de secours — le modèle IA est temporairement indisponible. Recommandation basée sur les lignes directrices.'
             }));
         }
         next(e);
@@ -125,14 +123,11 @@ router.post('/assistant/farmer', authenticate, requireRole('FARMER'), validate(f
             }
         }));
     } catch (e) {
-        if (e.statusCode === 503) {
-            return res.status(503).json(error('AI_UNAVAILABLE', 'IA temporairement indisponible', 503).responseBody);
-        }
-        if (e.statusCode === 504) {
+        if (e.statusCode === 503 || e.statusCode === 504) {
             return res.json(success({
                 answer: guardrails.getFallback('farmer'),
                 model: 'fallback',
-                guardrails: { usedFallback: true, reason: 'TIMEOUT' }
+                guardrails: { usedFallback: true, reason: e.statusCode === 503 ? 'AI_OFFLINE' : 'TIMEOUT' }
             }));
         }
         next(e);
@@ -164,14 +159,11 @@ router.post('/explain/trace', optionalAuth, validate(traceExplainSchema), async 
             }
         }));
     } catch (e) {
-        if (e.statusCode === 503) {
-            return res.status(503).json(error('AI_UNAVAILABLE', 'IA temporairement indisponible', 503).responseBody);
-        }
-        if (e.statusCode === 504) {
+        if (e.statusCode === 503 || e.statusCode === 504) {
             return res.json(success({
                 explanation: guardrails.getFallback('trace'),
                 lotId: req.body.lotId,
-                guardrails: { usedFallback: true, reason: 'TIMEOUT' }
+                guardrails: { usedFallback: true, reason: e.statusCode === 503 ? 'AI_OFFLINE' : 'TIMEOUT' }
             }));
         }
         next(e);

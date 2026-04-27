@@ -8,6 +8,9 @@ export default function FarmerLayout() {
       <Stack.Screen name="lots" />
       <Stack.Screen name="farmer-sales" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="lot-details" />
+      <Stack.Screen name="ai-assistant" />
+      <Stack.Screen name="add-lot" />
     </Stack>
   );
 }

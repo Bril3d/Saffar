@@ -1,10 +1,7 @@
 /**
  * SAFAR Chain — Login Screen
- * 5 role selector cards + email/password + green pill CTA.
- * "Emerald Trace" design: white bg, green primary, tonal layering, no borders.
  */
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,30 +13,29 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
 import { useAuth, Role } from '@/store/authStore';
+import { FileText, Pill, Stethoscope, Tractor, Factory, ShoppingCart, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react-native';
 
 /* ── Role Data ───────────────────────────────────── */
-
-const roles: { id: Role; icon: string; label: string }[] = [
-  { id: 'PHARMACY', icon: '🏥', label: 'Pharmacie' },
-  { id: 'VET', icon: '🩺', label: 'Vétérinaire' },
-  { id: 'FARMER', icon: '🐄', label: 'Éleveur' },
-  { id: 'SLAUGHTERHOUSE', icon: '🔪', label: 'Abattoir' },
-  { id: 'CONSUMER', icon: '🛒', label: 'Consommateur' },
+const roles: { id: Role; Icon: any; label: string }[] = [
+  { id: 'PHARMACY', Icon: Pill, label: 'Pharmacie' },
+  { id: 'VET', Icon: Stethoscope, label: 'Vétérinaire' },
+  { id: 'FARMER', Icon: Tractor, label: 'Éleveur' },
+  { id: 'SLAUGHTERHOUSE', Icon: Factory, label: 'Abattoir' },
+  { id: 'CONSUMER', Icon: ShoppingCart, label: 'Consommateur' },
 ];
 
 /* ── Role Card ───────────────────────────────────── */
-
 function RoleCard({
-  icon,
+  Icon,
   label,
   selected,
   onPress,
 }: {
-  icon: string;
+  Icon: any;
   label: string;
   selected: boolean;
   onPress: () => void;
@@ -47,26 +43,36 @@ function RoleCard({
   return (
     <TouchableOpacity
       style={[styles.roleCard, selected && styles.roleCardSelected]}
-      activeOpacity={0.7}
+      activeOpacity={0.85}
       onPress={onPress}
     >
-      {selected && (
-        <View style={styles.roleCheckBadge}>
-          <Text style={styles.roleCheckText}>✓</Text>
-        </View>
-      )}
-      <Text style={styles.roleIcon}>{icon}</Text>
+      <Icon size={28} color={selected ? Colors.primary : Colors.onSurfaceVariant} style={styles.roleIcon} />
       <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>
         {label}
       </Text>
+      {selected && (
+        <View style={styles.roleCheckBadge}>
+          <CheckCircle2 size={12} color={Colors.onPrimary} />
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
 
 /* ── Main Screen ──────────────────────────────────── */
-
 export default function LoginScreen() {
-  const { login, register, selectRole, selectedRole } = useAuth();
+  const { login, register, selectRole, selectedRole, isAuthenticated, role } = useAuth();
+
+  if (isAuthenticated && role) {
+    const routeMap: Record<Role, string> = {
+      PHARMACY: '/(pharmacy)/home',
+      VET: '/(vet)/home',
+      FARMER: '/(farmer)/home',
+      SLAUGHTERHOUSE: '/(abattoir)/home',
+      CONSUMER: '/(consumer)/home',
+    };
+    return <Redirect href={routeMap[role] as any} />;
+  }
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -77,24 +83,13 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     setError('');
-
-    if (!selectedRole) {
-      setError('Veuillez sélectionner votre rôle');
-      return;
-    }
-    if (!email.trim()) {
-      setError('Veuillez entrer votre email');
-      return;
-    }
-    if (!password.trim()) {
-      setError('Veuillez entrer votre mot de passe');
-      return;
-    }
+    if (!selectedRole) { setError('Veuillez sélectionner votre rôle'); return; }
+    if (!email.trim()) { setError('Veuillez entrer votre email'); return; }
+    if (!password.trim()) { setError('Veuillez entrer votre mot de passe'); return; }
 
     setLoading(true);
     try {
       await login(selectedRole, email, password);
-
       const routeMap: Record<Role, string> = {
         PHARMACY: '/(pharmacy)/home',
         VET: '/(vet)/home',
@@ -104,11 +99,7 @@ export default function LoginScreen() {
       };
       router.replace(routeMap[selectedRole] as any);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.error?.message ||
-        err?.message ||
-        'Échec de la connexion. Veuillez réessayer.';
-      setError(msg);
+      setError(err?.response?.data?.error?.message || err?.message || 'Échec de la connexion. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -116,40 +107,17 @@ export default function LoginScreen() {
 
   const handleRegister = async () => {
     setError('');
-
-    if (!selectedRole) {
-      setError('Veuillez sélectionner votre rôle');
-      return;
-    }
-    if (!name.trim()) {
-      setError('Veuillez entrer votre nom');
-      return;
-    }
-    if (!email.trim()) {
-      setError('Veuillez entrer votre email');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères');
-      return;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setError('Le mot de passe doit contenir au moins une majuscule');
-      return;
-    }
-    if (!/[a-z]/.test(password)) {
-      setError('Le mot de passe doit contenir au moins une minuscule');
-      return;
-    }
-    if (!/[0-9]/.test(password)) {
-      setError('Le mot de passe doit contenir au moins un chiffre');
-      return;
-    }
+    if (!selectedRole) { setError('Veuillez sélectionner votre rôle'); return; }
+    if (!name.trim()) { setError('Veuillez entrer votre nom'); return; }
+    if (!email.trim()) { setError('Veuillez entrer votre email'); return; }
+    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères'); return; }
+    if (!/[A-Z]/.test(password)) { setError('Le mot de passe doit contenir au moins une majuscule'); return; }
+    if (!/[a-z]/.test(password)) { setError('Le mot de passe doit contenir au moins une minuscule'); return; }
+    if (!/[0-9]/.test(password)) { setError('Le mot de passe doit contenir au moins un chiffre'); return; }
 
     setLoading(true);
     try {
       await register(selectedRole, name, email, password);
-
       const routeMap: Record<Role, string> = {
         PHARMACY: '/(pharmacy)/home',
         VET: '/(vet)/home',
@@ -159,11 +127,7 @@ export default function LoginScreen() {
       };
       router.replace(routeMap[selectedRole] as any);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.error?.message ||
-        err?.message ||
-        'Échec de l\'inscription. Veuillez réessayer.';
-      setError(msg);
+      setError(err?.response?.data?.error?.message || err?.message || 'Échec de l\'inscription. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -171,10 +135,7 @@ export default function LoginScreen() {
 
   const toggleMode = () => {
     setIsRegister(!isRegister);
-    setError('');
-    setName('');
-    setEmail('');
-    setPassword('');
+    setError(''); setName(''); setEmail(''); setPassword('');
   };
 
   return (
@@ -191,8 +152,8 @@ export default function LoginScreen() {
         >
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logoChain}>🔗</Text>
-            <Text style={styles.logoText}>SAFAR Chain</Text>
+            <FileText size={24} color={Colors.primary} />
+            <Text style={styles.logoText}>Farm Care</Text>
           </View>
 
           {/* Title */}
@@ -205,81 +166,86 @@ export default function LoginScreen() {
               : 'Connectez-vous à votre compte'}
           </Text>
 
-          {/* Role Selector — both modes */}
+          {/* Role Selector */}
           <Text style={styles.sectionLabel}>Sélectionnez votre rôle</Text>
           <View style={styles.rolesGrid}>
-                {roles.map((r) => (
-                  <RoleCard
-                    key={r.id}
-                    icon={r.icon}
-                    label={r.label}
-                    selected={selectedRole === r.id}
-                    onPress={() => selectRole(r.id)}
-                  />
-                ))}
+            {roles.map((r) => (
+              <RoleCard
+                key={r.id}
+                Icon={r.Icon}
+                label={r.label}
+                selected={selectedRole === r.id}
+                onPress={() => selectRole(r.id)}
+              />
+            ))}
           </View>
 
           {/* Error */}
           {!!error && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>⚠️ {error}</Text>
+              <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {/* Name Input — register only */}
-          {isRegister && (
+          <View style={styles.formFields}>
+            {/* Name Input — register only */}
+            {isRegister && (
+              <View style={styles.inputContainer}>
+                <User size={20} color={Colors.onSurfaceDisabled} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nom complet"
+                  placeholderTextColor={Colors.onSurfaceDisabled}
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </View>
+            )}
+
+            {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputIcon}>👤</Text>
+              <Mail size={20} color={Colors.onSurfaceDisabled} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Nom complet"
-                placeholderTextColor={Colors.outline}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
+                placeholder="Email"
+                placeholderTextColor={Colors.onSurfaceDisabled}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
-          )}
 
-          {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>✉️</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={Colors.outline}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Lock size={20} color={Colors.onSurfaceDisabled} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Mot de passe"
+                placeholderTextColor={Colors.onSurfaceDisabled}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.showPasswordBtn}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color={Colors.onSurfaceVariant} />
+                ) : (
+                  <Eye size={20} color={Colors.onSurfaceVariant} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>🔒</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              placeholderTextColor={Colors.outline}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.showPasswordBtn}
-            >
-              <Text style={styles.showPasswordText}>
-                {showPassword ? '🙈' : '👁️'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Password hint — register only */}
+          {/* Password hint */}
           {isRegister && (
             <Text style={styles.passwordHint}>
               8+ caractères, 1 majuscule, 1 minuscule, 1 chiffre
@@ -288,7 +254,7 @@ export default function LoginScreen() {
 
           {/* Primary Action Button */}
           <TouchableOpacity
-            style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
+            style={styles.primaryButton}
             activeOpacity={0.85}
             onPress={isRegister ? handleRegister : handleLogin}
             disabled={loading}
@@ -305,7 +271,7 @@ export default function LoginScreen() {
           {/* Toggle Login/Register */}
           <TouchableOpacity
             style={styles.ghostButton}
-            activeOpacity={0.7}
+            activeOpacity={0.85}
             onPress={toggleMode}
           >
             <Text style={styles.ghostButtonText}>
@@ -315,7 +281,7 @@ export default function LoginScreen() {
 
           {/* Footer */}
           <Text style={styles.footer}>
-            Traçabilité certifiée blockchain 🔗
+            Traçabilité certifiée blockchain 
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -324,11 +290,10 @@ export default function LoginScreen() {
 }
 
 /* ── Styles ───────────────────────────────────────── */
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surfaceContainerLowest,
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -336,16 +301,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Logo
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xl,
     gap: Spacing.sm,
-  },
-  logoChain: {
-    fontSize: 28,
   },
   logoText: {
     fontSize: 22,
@@ -354,11 +315,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  // Title
   title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: Colors.primary,
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.onSurface,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
@@ -370,7 +330,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
 
-  // Section label
   sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -380,31 +339,36 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
 
-  // Roles grid (2 columns + 1 centered)
   rolesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   roleCard: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: Colors.surface,
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     minWidth: 90,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    ...Shadows.sm,
   },
   roleCardSelected: {
-    backgroundColor: Colors.primaryFixed,
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(46, 125, 50, 0.04)',
+    borderWidth: 2,
+    ...Shadows.glow(Colors.primary),
   },
   roleCheckBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 6,
+    right: 6,
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -412,14 +376,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleCheckText: {
-    fontSize: 11,
-    color: Colors.onPrimary,
-    fontWeight: '800',
-  },
   roleIcon: {
-    fontSize: 28,
-    marginBottom: 4,
+    marginBottom: Spacing.sm,
   },
   roleLabel: {
     fontSize: 11,
@@ -432,31 +390,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Error
   errorContainer: {
     backgroundColor: Colors.errorContainer,
     borderRadius: Radii.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.error,
   },
   errorText: {
     fontSize: 13,
-    color: Colors.onErrorContainer,
+    color: Colors.error,
     fontWeight: '500',
   },
 
-  // Inputs
+  formFields: {
+    gap: Spacing.sm,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: Radii.lg,
+    borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
     height: 56,
+    borderWidth: 1,
+    borderColor: Colors.surfaceContainerLow,
   },
   inputIcon: {
-    fontSize: 18,
     marginRight: Spacing.sm,
   },
   input: {
@@ -467,34 +428,25 @@ const styles = StyleSheet.create({
   showPasswordBtn: {
     padding: Spacing.xs,
   },
-  showPasswordText: {
-    fontSize: 18,
-  },
 
-  // Buttons
   primaryButton: {
-    backgroundColor: Colors.primaryContainer,
-    borderRadius: Radii.full,
-    paddingVertical: 18,
+    backgroundColor: Colors.primary,
+    borderRadius: Radii.md,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: Spacing.sm,
-    ...Shadows.glow(Colors.primaryContainer),
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
+    marginTop: Spacing.xl,
+    ...Shadows.md,
   },
   primaryButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.onPrimary,
-    letterSpacing: 0.3,
   },
   ghostButton: {
-    borderRadius: Radii.full,
+    borderRadius: Radii.md,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: Spacing.md,
-    backgroundColor: Colors.surfaceContainerLow,
   },
   ghostButtonText: {
     fontSize: 15,
@@ -502,18 +454,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Footer
   footer: {
     textAlign: 'center',
     fontSize: 12,
-    color: Colors.outline,
+    color: Colors.onSurfaceDisabled,
     marginTop: Spacing.xl,
   },
   passwordHint: {
     fontSize: 12,
     color: Colors.onSurfaceVariant,
-    marginTop: -Spacing.xs,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.xs,
     paddingHorizontal: Spacing.xs,
   },
 });

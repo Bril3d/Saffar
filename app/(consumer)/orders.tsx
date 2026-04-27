@@ -8,8 +8,10 @@ import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
 import { getOrders } from '@/services/api';
 import type { OrderResponse } from '@/services/types';
+import { Home, ScanLine, FileText, User } from 'lucide-react-native';
 
-const statusMap: Record<string, string> = { PENDING: '⏳ En attente', CONFIRMED: '✅ Confirmée', PREPARING: '📦 En préparation', READY: '🚚 En livraison', DELIVERED: '✅ Livré' };
+
+const statusMap: Record<string, string> = { PENDING: '⏳ En attente', CONFIRMED: ' Confirmée', PREPARING: ' En préparation', READY: ' En livraison', DELIVERED: ' Livré' };
 
 export default function OrdersScreen() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -23,7 +25,7 @@ export default function OrdersScreen() {
     <SafeAreaView style={st.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={st.title}>📦 Mes Commandes</Text>
+        <Text style={st.title}> Mes Commandes</Text>
         {loading ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} /> :
           orders.length === 0 ? <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 30 }}>Aucune commande</Text> :
           orders.map((o) => (
@@ -42,11 +44,11 @@ export default function OrdersScreen() {
         }
       </ScrollView>
       <View style={st.tabBar}>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/home')}><Text style={st.tI}>🏠</Text><Text style={st.tL}>Accueil</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/scanner')}><Text style={st.tI}>📷</Text><Text style={st.tL}>Scanner</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/cart')}><Text style={st.tI}>🛒</Text><Text style={st.tL}>Panier</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab}><Text style={st.tIA}>📦</Text><Text style={st.tLA}>Commandes</Text></TouchableOpacity>
-        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/profile')}><Text style={st.tI}>👤</Text><Text style={st.tL}>Profil</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/home')}><Home size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Accueil</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/scanner')}><ScanLine size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Scanner</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/cart')}><FileText size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Panier</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab}><FileText size={24} color={Colors.onSurfaceVariant} /><Text style={st.tLA}>Commandes</Text></TouchableOpacity>
+        <TouchableOpacity style={st.tab} onPress={() => router.replace('/(consumer)/profile')}><User size={24} color={Colors.onSurfaceVariant} /><Text style={st.tL}>Profil</Text></TouchableOpacity>
       </View>
     </SafeAreaView>
   );

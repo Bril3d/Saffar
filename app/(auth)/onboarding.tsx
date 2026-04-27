@@ -1,9 +1,7 @@
 /**
  * SAFAR Chain — Onboarding / Welcome Screen
- * Premium light design with green accents, blockchain illustration, and feature highlights.
  */
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,34 +10,34 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, Spacing, Radii, Shadows } from '@/constants/theme';
+import { useAuth } from '@/store/authStore';
+import { FileText, Stethoscope, Factory, Search, ShieldCheck, Bot, CheckCircle2 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 /* ── Feature Highlight Data ──────────────────────── */
-
 const features = [
   {
-    icon: '🔗',
+    Icon: Search,
     title: 'Traçabilité complète',
     desc: 'Du médicament à l\'assiette',
   },
   {
-    icon: '🛡️',
+    Icon: ShieldCheck,
     title: 'Certifié Blockchain',
     desc: 'Chaque étape vérifiable',
   },
   {
-    icon: '🤖',
+    Icon: Bot,
     title: 'IA Intégrée',
     desc: 'Assistance vétérinaire intelligente',
   },
 ];
 
 /* ── Blockchain Illustration (SVG-like with Views) ── */
-
 function BlockchainIllustration() {
   return (
     <View style={styles.illustrationContainer}>
@@ -50,17 +48,17 @@ function BlockchainIllustration() {
       {/* Chain nodes */}
       <View style={styles.chainRow}>
         <View style={styles.chainNode}>
-          <Text style={styles.chainEmoji}>🏥</Text>
+          <FileText size={24} color={Colors.onSurfaceVariant} />
           <Text style={styles.chainLabel}>Pharmacie</Text>
         </View>
         <View style={styles.chainLink} />
         <View style={styles.chainNode}>
-          <Text style={styles.chainEmoji}>🩺</Text>
+          <Stethoscope size={24} color={Colors.onSurfaceVariant} />
           <Text style={styles.chainLabel}>Vétérinaire</Text>
         </View>
         <View style={styles.chainLink} />
         <View style={styles.chainNode}>
-          <Text style={styles.chainEmoji}>🐄</Text>
+          <FileText size={24} color={Colors.onSurfaceVariant} />
           <Text style={styles.chainLabel}>Éleveur</Text>
         </View>
       </View>
@@ -69,17 +67,17 @@ function BlockchainIllustration() {
       <View style={styles.chainConnectorVertical} />
       <View style={styles.chainRow}>
         <View style={styles.chainNode}>
-          <Text style={styles.chainEmoji}>🔪</Text>
+          <Factory size={24} color={Colors.onSurfaceVariant} />
           <Text style={styles.chainLabel}>Abattoir</Text>
         </View>
         <View style={styles.chainLink} />
         <View style={[styles.chainNode, styles.chainNodeHighlight]}>
-          <Text style={styles.chainEmoji}>✅</Text>
-          <Text style={styles.chainLabel}>Certifié</Text>
+          <CheckCircle2 size={24} color={Colors.onPrimary} />
+          <Text style={[styles.chainLabel, { color: Colors.onPrimary }]}>Certifié</Text>
         </View>
         <View style={styles.chainLink} />
         <View style={styles.chainNode}>
-          <Text style={styles.chainEmoji}>🛒</Text>
+          <FileText size={24} color={Colors.onSurfaceVariant} />
           <Text style={styles.chainLabel}>Consommateur</Text>
         </View>
       </View>
@@ -88,12 +86,11 @@ function BlockchainIllustration() {
 }
 
 /* ── Feature Card ─────────────────────────────────── */
-
-function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+function FeatureCard({ Icon, title, desc }: { Icon: any; title: string; desc: string }) {
   return (
     <View style={styles.featureCard}>
       <View style={styles.featureIconContainer}>
-        <Text style={styles.featureIcon}>{icon}</Text>
+        <Icon size={24} color={Colors.primary} />
       </View>
       <View style={styles.featureTextContainer}>
         <Text style={styles.featureTitle}>{title}</Text>
@@ -104,8 +101,19 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
 }
 
 /* ── Main Screen ──────────────────────────────────── */
-
 export default function OnboardingScreen() {
+  const { isAuthenticated, role } = useAuth();
+
+  if (isAuthenticated && role) {
+    const routeMap: any = {
+      PHARMACY: '/(pharmacy)/home',
+      VET: '/(vet)/home',
+      FARMER: '/(farmer)/home',
+      SLAUGHTERHOUSE: '/(abattoir)/home',
+      CONSUMER: '/(consumer)/home',
+    };
+    return <Redirect href={routeMap[role] || '/(auth)/login'} />;
+  }
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -117,7 +125,7 @@ export default function OnboardingScreen() {
         <BlockchainIllustration />
 
         {/* Title */}
-        <Text style={styles.title}>SAFAR Chain</Text>
+        <Text style={styles.title}>Farm Care</Text>
         <Text style={styles.subtitle}>
           Traçabilité Vétérinaire sur Blockchain
         </Text>
@@ -125,7 +133,7 @@ export default function OnboardingScreen() {
         {/* Feature Highlights */}
         <View style={styles.featuresContainer}>
           {features.map((f, i) => (
-            <FeatureCard key={i} icon={f.icon} title={f.title} desc={f.desc} />
+            <FeatureCard key={i} Icon={f.Icon} title={f.title} desc={f.desc} />
           ))}
         </View>
 
@@ -141,6 +149,7 @@ export default function OnboardingScreen() {
         {/* Login link */}
         <TouchableOpacity
           style={styles.secondaryLink}
+          activeOpacity={0.85}
           onPress={() => router.push('/(auth)/login')}
         >
           <Text style={styles.secondaryLinkText}>
@@ -154,15 +163,14 @@ export default function OnboardingScreen() {
 }
 
 /* ── Styles ───────────────────────────────────────── */
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surfaceContainerLowest,
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 40,
     alignItems: 'center',
   },
@@ -171,21 +179,23 @@ const styles = StyleSheet.create({
   illustrationContainer: {
     width: width - 48,
     height: 240,
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: Colors.surface,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xl,
     overflow: 'hidden',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    ...Shadows.md,
   },
   bgCircleLarge: {
     position: 'absolute',
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: Colors.primaryFixed,
-    opacity: 0.15,
+    backgroundColor: Colors.primaryContainer,
     top: -40,
     right: -40,
   },
@@ -194,8 +204,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.primaryFixedDim,
-    opacity: 0.12,
+    backgroundColor: Colors.secondaryContainer,
     bottom: -20,
     left: -20,
   },
@@ -208,35 +217,36 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: Radii.lg,
-    backgroundColor: Colors.surfaceContainerLowest,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.outline,
   },
   chainNodeHighlight: {
-    backgroundColor: Colors.primaryFixed,
-  },
-  chainEmoji: {
-    fontSize: 24,
-    marginBottom: 2,
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+    ...Shadows.glow(Colors.primary),
   },
   chainLabel: {
     fontSize: 8,
     fontWeight: '600',
     color: Colors.onSurfaceVariant,
     textAlign: 'center',
+    marginTop: 4,
   },
   chainLink: {
     width: 20,
     height: 3,
-    backgroundColor: Colors.primaryFixedDim,
+    backgroundColor: Colors.outline,
     borderRadius: 2,
     marginHorizontal: 2,
   },
   chainConnectorVertical: {
     width: 3,
     height: 12,
-    backgroundColor: Colors.primaryFixedDim,
+    backgroundColor: Colors.outline,
     borderRadius: 2,
     alignSelf: 'center',
   },
@@ -267,22 +277,21 @@ const styles = StyleSheet.create({
   featureCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: Colors.surface,
     borderRadius: Radii.lg,
     padding: Spacing.md,
     gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    ...Shadows.sm,
   },
   featureIconContainer: {
     width: 48,
     height: 48,
     borderRadius: Radii.md,
-    backgroundColor: Colors.surfaceContainerLowest,
+    backgroundColor: Colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  featureIcon: {
-    fontSize: 22,
   },
   featureTextContainer: {
     flex: 1,
@@ -302,11 +311,11 @@ const styles = StyleSheet.create({
   // Buttons
   primaryButton: {
     width: '100%',
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: Colors.primary,
     borderRadius: Radii.full,
     paddingVertical: 18,
     alignItems: 'center',
-    ...Shadows.glow(Colors.primaryContainer),
+    ...Shadows.md,
   },
   primaryButtonText: {
     fontSize: 17,
@@ -319,7 +328,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   secondaryLinkText: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.onSurfaceVariant,
   },
   secondaryLinkBold: {
