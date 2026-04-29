@@ -1,53 +1,148 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * SAFAR Chain — "Emerald Trace" Design System
+ * Migrated to Light agricultural theme: warm, earthy, Mediterranean
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+/* ── Color Tokens ─────────────────────────────────── */
 
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+  // Canvas / Surfaces
+  background: '#F7F5F0',         // warm cream
+  surface: '#FFFFFF',            // cards
+  surfaceContainerLow: '#F0EDE6',// inputs, wells
+  surfaceContainer: '#E6E2DA',   // hover, pressed
+  
+  outline: '#DDD9D0',            // subtle border
+  outlineVariant: '#C5BFB3',     // strong border
+
+  // Text
+  onBackground: '#1C2B1A',       // text-primary
+  onSurface: '#1C2B1A',          // text-primary
+  onSurfaceVariant: '#4E5D4B',   // text-secondary
+  onSurfaceDisabled: '#B3BAB0',  // text-disabled
+
+  // Brand
+  primary: '#2E7D32',            // rich agricultural green
+  primaryContainer: 'rgba(46, 125, 50, 0.08)',
+  onPrimary: '#FFFFFF',
+  
+  secondary: '#1565A0',          // trustworthy blue
+  secondaryContainer: 'rgba(21, 101, 160, 0.08)',
+  onSecondary: '#FFFFFF',
+
+  // Status
+  error: '#C62828',
+  errorContainer: 'rgba(198, 40, 40, 0.08)',
+  onError: '#FFFFFF',
+  onErrorContainer: '#C62828',
+
+  success: '#2E7D32',
+  warning: '#E09F24',
+  info: '#1565A0',
+
+  // AWaRe classification
+  aware: {
+    access: '#2e7d32',
+    watch: '#E09F24',
+    reserve: '#C62828',
   },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+
+  // Status colors
+  status: {
+    certified: '#2e7d32',
+    withdrawal: '#E09F24',
+    pending: '#7D8A7A',
+    rejected: '#C62828',
   },
+
+  // Role Colors
+  rolePharmacy: '#2E7D32',
+  roleVet: '#1565A0',
+  roleFarmer: '#D4960E',
+  roleAbattoir: '#C62828',
+  roleConsumer: '#7B3FA0',
+
+  inverseSurface: '#1C2B1A',
+  inverseOnSurface: '#F7F5F0',
+  inversePrimary: '#357A38',
 };
+
+/* ── Typography ───────────────────────────────────── */
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    sans: 'System',
+    serif: 'Georgia',
+    rounded: 'System',
+    mono: 'Menlo',
   },
-  default: {
-    sans: 'normal',
+  android: {
+    sans: 'Roboto',
     serif: 'serif',
-    rounded: 'normal',
+    rounded: 'Roboto',
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "Inter, system-ui, -apple-system, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    rounded: "Inter, system-ui, sans-serif",
+    mono: "'JetBrains Mono', SFMono-Regular, Menlo, monospace",
   },
 });
+
+/* ── Spacing ──────────────────────────────────────── */
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 40,
+};
+
+/* ── Border Radii (large, pill-like) ─────────────── */
+
+export const Radii = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  full: 9999,
+};
+
+/* ── Shadows (ambient, tinted) ───────────────────── */
+
+export const Shadows = {
+  sm: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.10,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 8,
+  }),
+};
