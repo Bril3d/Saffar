@@ -1,13 +1,12 @@
 # 🌿 SAFAR Chain — Full Stack Repository
 
-> Veterinary antibiotic traceability & farm-to-consumer marketplace.  
+> Veterinary antibiotic traceability & farm-to-consumer marketplace.
 > Built for **Chain & Brain Hackathon Edition 2** (Tunisia, April 2026)
 
 This repository contains both the Frontend (React Native / Expo) and the Backend / AI services.
 
 ## 📺 Demo Video
 
-https://github.com/user-agent/repo/assets/Demo.mp4
 
 <video src="assets/Demo.mp4" width="100%" controls></video>
 
@@ -26,6 +25,7 @@ scripts/          → Startup & seeding scripts
 ## 🚀 Backend & AI Quick Start
 
 ### 1. Backend (Node.js)
+
 ```bash
 cd backend
 npm install
@@ -35,6 +35,7 @@ npm run dev           # Start on port 3000
 ```
 
 ### 2. AI Service (Python)
+
 ```bash
 cd ai_service
 pip install -r requirements.txt
@@ -45,31 +46,35 @@ python main.py        # Start on port 8001
 ```
 
 ### 3. Ollama LLM
+
 ```bash
 ollama pull phi3:mini
 ollama serve          # Runs on port 11434
 ```
 
 ### 4. Start Everything
+
 ```powershell
 .\scripts\start-all.ps1
 ```
 
 ## 🔐 Demo Credentials
+
 All users: password `Test1234`
 
-| Role | Email |
-|------|-------|
-| Admin | admin@safar.tn |
-| Pharmacy | pharmacy@safar.tn |
-| Vet | vet@safar.tn |
-| Farmer 1 | farmer1@safar.tn |
-| Farmer 2 | farmer2@safar.tn |
-| Slaughterhouse | abattoir@safar.tn |
-| Consumer 1 | consumer1@safar.tn |
-| Consumer 2 | consumer2@safar.tn |
+| Role           | Email              |
+| -------------- | ------------------ |
+| Admin          | admin@safar.tn     |
+| Pharmacy       | pharmacy@safar.tn  |
+| Vet            | vet@safar.tn       |
+| Farmer 1       | farmer1@safar.tn   |
+| Farmer 2       | farmer2@safar.tn   |
+| Slaughterhouse | abattoir@safar.tn  |
+| Consumer 1     | consumer1@safar.tn |
+| Consumer 2     | consumer2@safar.tn |
 
 ## 📚 API Documentation
+
 See [shared/api-contract.md](shared/api-contract.md) for full API specification.
 
 ---
@@ -87,7 +92,6 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npm install
    ```
-
 2. Start the app
 
    ```bash
