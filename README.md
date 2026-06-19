@@ -5,6 +5,12 @@
 
 This repository contains both the Frontend (React Native / Expo) and the Backend / AI services.
 
+## 📺 Demo Video
+
+https://github.com/user-agent/repo/assets/Demo.mp4
+
+<video src="assets/Demo.mp4" width="100%" controls></video>
+
 ---
 
 ## 🏗️ Architecture
