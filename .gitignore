@@ -95,3 +95,5 @@ shared/
 # Backend and contracts (separate repos / subdirs)
 backend/
 contracts/
+
+cahier_des_charges.md

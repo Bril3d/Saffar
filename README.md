@@ -7,7 +7,7 @@ This repository contains both the Frontend (React Native / Expo) and the Backend
 
 ## 📺 Demo Video
 
-<video src="https://github.com/Bril3d/Saffar/raw/main/assets/Demo.mp4" width="100%" controls></video>
+![Demo Video](assets/Demo.gif)
 
 ---
 
