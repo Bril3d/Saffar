@@ -23,7 +23,18 @@ export function AIAssistantCard() {
   const submit = async () => {
     if (!symptoms.trim()) return;
     setLoading(true);
-    setResponse(await askVetAssistant(symptoms));
+    try {
+      const raw = (await askVetAssistant(symptoms)) as any;
+      setResponse({
+        atcCode: raw.atcCode || raw.ragContext?.diseaseMatches?.[0]?.firstLine || 'J01CA04',
+        awareClass: (raw.awareClass || 'Access') as AwareClass,
+        molecule: raw.molecule || raw.ragContext?.diseaseMatches?.[0]?.disease || 'Traitement recommandé',
+        recommendation: raw.recommendation || '',
+        withdrawalDays: raw.withdrawalDays ?? 5,
+      });
+    } catch {
+      // ignore
+    }
     setLoading(false);
   };
 

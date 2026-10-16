@@ -11,7 +11,7 @@ import { useAuth } from '@/store/authStore';
 import type { PrescriptionResponse } from '@/services/types';
 import { Home, Package, ShoppingCart, User, Plus, Bot } from 'lucide-react-native';
 
-const statusCfg = {
+const statusCfg: Record<string, { label: string; color: string; bg: string }> = {
   certified: { label: 'Éligible', color: Colors.success, bg: '#E8F5E9' },
   withdrawal: { label: 'En retrait', color: Colors.warning, bg: '#FFF8E1' },
   pending: { label: 'En attente', color: Colors.status.pending, bg: '#F0EDE6' },
@@ -105,7 +105,7 @@ export default function LotsScreen() {
         ) : (
           <View style={s.lotGrid}>
             {lots.map((lot, i) => {
-              const cfg = statusCfg[lot.status];
+              const cfg = statusCfg[lot.status] || statusCfg.pending;
               return (
                 <TouchableOpacity key={lot.id || i} style={s.card} activeOpacity={0.7} onPress={() => router.push(`/(farmer)/lot-details?id=${lot.id}`)}>
                   <View style={s.cardPhoto}>

@@ -41,7 +41,7 @@ export default function LotDetailsScreen() {
   };
 
   const traceSteps = trace ? [
-    ...(trace.lotCreation ? [{ icon: Tractor, color: Colors.primary, label: 'Création du lot', detail: `${trace.lotCreation.name} (${trace.lotCreation.species || 'Bovin'}) - ${trace.lotCreation.quantity || 1} tête(s)`, date: new Date(trace.lotCreation.createdAt).toLocaleDateString('fr-FR') }] : []),
+    ...(trace.lotCreation ? [{ icon: Tractor, color: Colors.primary, label: 'Création du lot', detail: `${trace.lotCreation.name} (${trace.lotCreation.species || 'Bovin'}) - ${trace.lotCreation.quantity || 1} tête(s)`, date: new Date(trace.lotCreation.createdAt).toLocaleDateString('fr-FR'), action: null as { rxId?: string; label: string } | null }] : []),
     ...trace.prescriptions.flatMap((rx) => {
         const events = [];
         events.push({
@@ -50,7 +50,7 @@ export default function LotDetailsScreen() {
           label: rx.administered ? 'Traitement administré' : 'Prescription',
           detail: `${rx.antibiotic} · ${rx.awareClass}`,
           date: rx.treatmentStart ? new Date(rx.treatmentStart).toLocaleDateString('fr-FR') : '',
-          action: !rx.administered ? { rxId: rx.rxId, label: 'Confirmer l\'administration' } : null
+          action: (!rx.administered ? { rxId: rx.rxId, label: 'Confirmer l\'administration' } : null) as { rxId?: string; label: string } | null
         });
         if (rx.withdrawalEnd) {
           events.push({
@@ -59,11 +59,12 @@ export default function LotDetailsScreen() {
             label: 'Fin délai d\'attente',
             detail: 'Abattage autorisé à partir de cette date',
             date: new Date(rx.withdrawalEnd).toLocaleDateString('fr-FR'),
+            action: null as { rxId?: string; label: string } | null,
           });
         }
         return events;
     }),
-    ...(trace.certification.certified ? [{ icon: Factory, color: Colors.success, label: 'Abattage & Certifié', detail: `Score: ${trace.trustScore}%`, date: trace.certification.certifiedAt ? new Date(trace.certification.certifiedAt).toLocaleDateString('fr-FR') : '' }] : []),
+    ...(trace.certification.certified ? [{ icon: Factory, color: Colors.success, label: 'Abattage & Certifié', detail: `Score: ${trace.trustScore}%`, date: trace.certification.certifiedAt ? new Date(trace.certification.certifiedAt).toLocaleDateString('fr-FR') : '', action: null as { rxId?: string; label: string } | null }] : []),
   ] : [];
 
   return (
@@ -116,10 +117,10 @@ export default function LotDetailsScreen() {
                   <Text style={s.stepDetail}>{step.detail}</Text>
                   <Text style={s.stepDate}>{step.date}</Text>
                   
-                  {step.action && (
+                  {step.action && step.action.rxId && (
                     <TouchableOpacity 
                       style={[s.confirmBtn, confirmingRxId === step.action.rxId && { opacity: 0.7 }]} 
-                      onPress={() => handleConfirmRx(step.action.rxId)}
+                      onPress={() => step.action?.rxId && handleConfirmRx(step.action.rxId)}
                       disabled={confirmingRxId === step.action.rxId}
                       activeOpacity={0.8}
                     >

@@ -103,8 +103,8 @@ export async function getPrescription(rxId: string): Promise<PrescriptionRespons
   return unwrap(res);
 }
 
-export async function confirmPrescription(rxId: string): Promise<ConfirmPrescriptionResponse> {
-  const res = await apiClient.put(`/api/prescriptions/${rxId}/confirm`);
+export async function confirmPrescription(rxId: string, payload?: { administeredAt?: string; notes?: string }): Promise<ConfirmPrescriptionResponse> {
+  const res = await apiClient.put(`/api/prescriptions/${rxId}/confirm`, payload);
   return unwrap(res);
 }
 

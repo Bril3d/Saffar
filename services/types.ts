@@ -136,6 +136,7 @@ export interface TraceResponse {
     createdAt: string;
   } | null;
   prescriptions: Array<{
+    rxId?: string;
     antibiotic: string;
     awareClass: string;
     treatmentStart: string | null;

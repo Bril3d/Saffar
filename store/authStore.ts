@@ -51,7 +51,7 @@ const initialState: AuthState = {
 /* ── Load persisted state SYNCHRONOUSLY on module init ───── */
 
 function loadPersistedState(): AuthState {
-  if (Platform.OS !== 'web') return initialState;
+  if (Platform.OS !== 'web' || typeof localStorage === 'undefined') return initialState;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -81,7 +81,7 @@ export function getAuthSnapshot(): AuthState {
 /* ── Persist to localStorage ─────────────────────────────── */
 
 function persistState(state: AuthState) {
-  if (Platform.OS !== 'web') return;
+  if (Platform.OS !== 'web' || typeof localStorage === 'undefined') return;
   try {
     if (state.isAuthenticated && state.token) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -167,7 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.clear();
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.clear();
+    } catch {}
     _snapshot = initialState;
     persistState(initialState);
     setState(initialState);
@@ -201,3 +203,17 @@ export function useAuth(): AuthContextType {
   }
   return ctx;
 }
+
+export const useAuthStore = Object.assign(
+  function useAuthStore() {
+    return useAuth();
+  },
+  {
+    getState: () => ({
+      ..._snapshot,
+      login: async (_input: any) => {},
+      logout: () => {},
+    }),
+  }
+);
+

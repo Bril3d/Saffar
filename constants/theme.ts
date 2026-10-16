@@ -11,6 +11,7 @@ export const Colors = {
   // Canvas / Surfaces
   background: '#F7F5F0',         // warm cream
   surface: '#FFFFFF',            // cards
+  surfaceContainerLowest: '#FFFFFF',
   surfaceContainerLow: '#F0EDE6',// inputs, wells
   surfaceContainer: '#E6E2DA',   // hover, pressed
   
@@ -26,6 +27,8 @@ export const Colors = {
   // Brand
   primary: '#2E7D32',            // rich agricultural green
   primaryContainer: 'rgba(46, 125, 50, 0.08)',
+  primaryFixed: '#E8F5E9',
+  primaryFixedDim: '#C8E6C9',
   onPrimary: '#FFFFFF',
   
   secondary: '#1565A0',          // trustworthy blue
@@ -67,7 +70,20 @@ export const Colors = {
   inverseSurface: '#1C2B1A',
   inverseOnSurface: '#F7F5F0',
   inversePrimary: '#357A38',
+
+  // Standard Expo template theme keys
+  text: '#1C2B1A',
+  icon: '#4E5D4B',
+  tint: '#2E7D32',
+  tabIconDefault: '#B3BAB0',
+  tabIconSelected: '#2E7D32',
+
+  light: null as any,
+  dark: null as any,
 };
+
+Colors.light = Colors;
+Colors.dark = Colors;
 
 /* ── Typography ───────────────────────────────────── */
 
@@ -146,3 +162,125 @@ export const Shadows = {
     elevation: 8,
   }),
 };
+
+/* ── Backward Compatibility Exports ─────────────── */
+
+export const spacing = Spacing;
+export const radii = Radii;
+
+export const colors = {
+  ...Colors,
+  bg: {
+    primary: Colors.background,
+    secondary: Colors.surface,
+    tertiary: Colors.surfaceContainerLow,
+    elevated: Colors.surfaceContainer,
+    input: Colors.surfaceContainerLow,
+  },
+  border: {
+    default: Colors.outline,
+    strong: Colors.outlineVariant,
+    focus: Colors.primary,
+  },
+  text: {
+    primary: Colors.onBackground,
+    secondary: Colors.onSurfaceVariant,
+    tertiary: Colors.onSurfaceDisabled,
+    inverse: Colors.inverseOnSurface,
+    link: Colors.secondary,
+  },
+  accent: {
+    primary: Colors.primary,
+    primaryMuted: Colors.primaryContainer,
+    primarySubtle: 'rgba(46,125,50,0.06)',
+    blockchain: Colors.secondary,
+    blockchainMuted: Colors.secondaryContainer,
+  },
+  aware: {
+    ...Colors.aware,
+    accessBg: 'rgba(46,125,50,0.12)',
+    watchBg: 'rgba(224,159,36,0.12)',
+    reserveBg: 'rgba(198,40,40,0.12)',
+  },
+  status: {
+    success: Colors.success,
+    successBg: 'rgba(46,125,50,0.10)',
+    warning: Colors.warning,
+    warningBg: 'rgba(224,159,36,0.10)',
+    danger: Colors.error,
+    dangerBg: Colors.errorContainer,
+    info: Colors.info,
+    infoBg: 'rgba(21,101,160,0.10)',
+    certified: Colors.status.certified,
+    withdrawal: Colors.status.withdrawal,
+    pending: Colors.status.pending,
+    rejected: Colors.status.rejected,
+  },
+  role: {
+    pharmacy: Colors.rolePharmacy,
+    pharmacyBg: 'rgba(46,125,50,0.08)',
+    vet: Colors.roleVet,
+    vetBg: 'rgba(21,101,160,0.08)',
+    farmer: Colors.roleFarmer,
+    farmerBg: 'rgba(212,150,14,0.08)',
+    slaughterhouse: Colors.roleAbattoir,
+    slaughterhouseBg: 'rgba(198,40,40,0.08)',
+    consumer: Colors.roleConsumer,
+    consumerBg: 'rgba(123,63,160,0.08)',
+  },
+};
+
+export const typography = {
+  display: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    letterSpacing: -0.5,
+    lineHeight: 34,
+    color: Colors.onBackground,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '600' as const,
+    letterSpacing: -0.3,
+    lineHeight: 28,
+    color: Colors.onBackground,
+  },
+  section: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    letterSpacing: 0,
+    lineHeight: 22,
+    color: Colors.onBackground,
+  },
+  body: {
+    fontSize: 15,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
+    lineHeight: 22,
+    color: Colors.onSurfaceVariant,
+  },
+  caption: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    letterSpacing: 0.2,
+    lineHeight: 18,
+    color: Colors.onSurfaceVariant,
+  },
+  overline: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 1.5,
+    lineHeight: 16,
+    color: Colors.onSurfaceVariant,
+    textTransform: 'uppercase' as const,
+  },
+  mono: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    letterSpacing: 0,
+    lineHeight: 18,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', web: "'JetBrains Mono', monospace" }),
+    color: Colors.onSurfaceVariant,
+  },
+};
+

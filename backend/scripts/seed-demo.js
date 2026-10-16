@@ -15,7 +15,7 @@ async function seed() {
     const db = getDb();
 
     // Clear existing data
-    db.exec('DELETE FROM reviews; DELETE FROM orders; DELETE FROM products; DELETE FROM lot_certifications; DELETE FROM prescriptions_offchain; DELETE FROM drug_sales_offchain; DELETE FROM users; DELETE FROM audit_log;');
+    db.exec('DELETE FROM reviews; DELETE FROM orders; DELETE FROM products; DELETE FROM lot_certifications; DELETE FROM prescriptions_offchain; DELETE FROM drug_sales_offchain; DELETE FROM animal_lots; DELETE FROM users; DELETE FROM audit_log;');
 
     const pw = await bcrypt.hash('Test1234', 10);
 
@@ -55,6 +55,13 @@ async function seed() {
         insertUser.run(u.id, u.wallet, u.role, u.name, u.email, pw, 'Ariana', u.license || null);
     }
     console.log(`[SEED] ${users.length} users created`);
+
+    // ---- Animal Lots ----
+    const insertLot = db.prepare('INSERT INTO animal_lots (id, farmer_id, name, species, quantity) VALUES (?, ?, ?, ?, ?)');
+    insertLot.run('L-882', 'farmer-001', 'Bovins Charolais Lot A', 'Bovin', 12);
+    insertLot.run('L-901', 'farmer-001', 'Génisses Limousines Lot B', 'Bovin', 8);
+    insertLot.run('L-950', 'farmer-001', 'Poulets de chair Bio', 'Volaille', 150);
+    console.log('[SEED] 3 animal lots created');
 
     // ---- Register blockchain roles ----
     const rolesToRegister = [
@@ -123,14 +130,25 @@ async function seed() {
     let cert1, cert3;
     try {
         cert1 = await sdk.certifyLot('L-882', rx1.rxId, slaughterWallet);
-        db.prepare('INSERT INTO lot_certifications (lot_id, slaughterhouse_id, certificate_hash, eligible, tx_hash) VALUES (?, ?, ?, 1, ?)').run('L-882', 'slaughter-001', cert1.certificateHash, cert1.txHash);
-    } catch(e) { console.log('[SEED] L-882 already certified on chain'); }
+    } catch(e) {
+        const v = await sdk.getLotVerification('L-882');
+        cert1 = { certificateHash: v.certificateHash, txHash: v.certificateHash };
+    }
+    db.prepare('INSERT OR REPLACE INTO lot_certifications (lot_id, slaughterhouse_id, certificate_hash, eligible, tx_hash) VALUES (?, ?, ?, 1, ?)').run('L-882', 'slaughter-001', cert1.certificateHash, cert1.txHash);
 
     try {
         cert3 = await sdk.certifyLot('L-950', rx3.rxId, slaughterWallet);
-        db.prepare('INSERT INTO lot_certifications (lot_id, slaughterhouse_id, certificate_hash, eligible, tx_hash) VALUES (?, ?, ?, 1, ?)').run('L-950', 'slaughter-001', cert3.certificateHash, cert3.txHash);
-    } catch(e) { console.log('[SEED] L-950 already certified on chain'); }
-    console.log('[SEED] 2 lots certified');
+    } catch(e) {
+        const v = await sdk.getLotVerification('L-950');
+        cert3 = { certificateHash: v.certificateHash, txHash: v.certificateHash };
+    }
+    db.prepare('INSERT OR REPLACE INTO lot_certifications (lot_id, slaughterhouse_id, certificate_hash, eligible, tx_hash) VALUES (?, ?, ?, 1, ?)').run('L-950', 'slaughter-001', cert3.certificateHash, cert3.txHash);
+    
+    // Historic rejected verification record to showcase the SlaughterGate blocking unauthorized lots
+    db.prepare('INSERT OR REPLACE INTO lot_certifications (lot_id, slaughterhouse_id, certificate_hash, eligible, tx_hash, certified_at) VALUES (?, ?, ?, 0, ?, ?)')
+      .run('L-704', 'slaughter-001', '0xGATE_REJECTED_RESIDUES', '0xa7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8', new Date(Date.now() - 3600000 * 2).toISOString());
+
+    console.log('[SEED] 3 lot certifications recorded (2 eligible, 1 blocked)');
 
     if (!cert1) cert1 = { certificateHash: '0x1' };
     if (!cert3) cert3 = { certificateHash: '0x3' };
