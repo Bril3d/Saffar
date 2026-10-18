@@ -38,11 +38,16 @@ npm run dev           # Start on port 3000
 ```bash
 cd ai_service
 pip install -r requirements.txt
-python scripts/generate_data.py
-python scripts/train_anomaly.py
-python scripts/train_forecast.py
-python main.py        # Start on port 8001
+python scripts/generate_data.py   # Generate reproducible benchmark simulation data
+python scripts/train_anomaly.py   # Train & serialize calibrated Isolation Forest
+python scripts/train_forecast.py  # Train & serialize lag-engineered XGBoost
+python scripts/evaluate_anomaly.py # Run held-out anomaly evaluation & sensitivity sweep
+python scripts/evaluate_forecast.py # Run chronological holdout & rolling-origin CV
+python -m pytest tests/           # Run automated test suite (14 unit/API tests)
+python main.py                    # Start FastAPI service on port 8001
 ```
+
+> **Data Provenance:** The ML datasets are algorithmically generated simulation benchmarks. For complete benchmark metrics, baseline comparisons, and CV guidance, see [ai_service/README.md](ai_service/README.md) and [ML_AUDIT_REPORT.md](ML_AUDIT_REPORT.md).
 
 ### 3. Ollama LLM
 

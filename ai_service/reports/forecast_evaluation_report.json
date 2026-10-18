@@ -1,0 +1,144 @@
+{
+  "chronological_holdout_evaluation": {
+    "XGBoost": {
+      "mae": 30.1913,
+      "rmse": 38.5824,
+      "r2": 0.3615
+    },
+    "Baseline_Historical_Group_Mean": {
+      "mae": 55.4266,
+      "rmse": 68.1751,
+      "r2": -0.9937
+    },
+    "Baseline_Last_Observation_Persistence": {
+      "mae": 54.0188,
+      "rmse": 66.1919,
+      "r2": -0.8794
+    },
+    "Baseline_Global_Mean": {
+      "mae": 44.1121,
+      "rmse": 54.7085,
+      "r2": -0.2839
+    }
+  },
+  "rolling_origin_evaluation": {
+    "XGBoost": {
+      "mean_mae": 30.1668,
+      "mean_rmse": 37.9635,
+      "mean_r2": 0.3251,
+      "fold_details": [
+        {
+          "mae": 32.0663,
+          "rmse": 40.7919,
+          "r2": 0.232
+        },
+        {
+          "mae": 26.778,
+          "rmse": 32.9885,
+          "r2": 0.371
+        },
+        {
+          "mae": 31.6561,
+          "rmse": 40.11,
+          "r2": 0.3723
+        }
+      ]
+    },
+    "Baseline_Historical_Group_Mean": {
+      "mean_mae": 57.7923,
+      "mean_rmse": 70.6667,
+      "mean_r2": -1.4182,
+      "fold_details": [
+        {
+          "mae": 62.7015,
+          "rmse": 75.657,
+          "r2": -1.6418
+        },
+        {
+          "mae": 59.9873,
+          "rmse": 72.0323,
+          "r2": -1.9989
+        },
+        {
+          "mae": 50.688,
+          "rmse": 64.3108,
+          "r2": -0.6138
+        }
+      ]
+    },
+    "Baseline_Last_Observation_Persistence": {
+      "mean_mae": 52.3398,
+      "mean_rmse": 64.8938,
+      "mean_r2": -0.991,
+      "fold_details": [
+        {
+          "mae": 55.7872,
+          "rmse": 69.4385,
+          "r2": -1.2254
+        },
+        {
+          "mae": 49.2128,
+          "rmse": 60.3235,
+          "r2": -1.1032
+        },
+        {
+          "mae": 52.0193,
+          "rmse": 64.9195,
+          "r2": -0.6445
+        }
+      ]
+    },
+    "Baseline_Global_Mean": {
+      "mean_mae": 46.5838,
+      "mean_rmse": 57.9031,
+      "mean_r2": -0.6213,
+      "fold_details": [
+        {
+          "mae": 49.2366,
+          "rmse": 61.3396,
+          "r2": -0.7365
+        },
+        {
+          "mae": 47.1652,
+          "rmse": 59.153,
+          "r2": -1.0224
+        },
+        {
+          "mae": 43.3497,
+          "rmse": 53.2167,
+          "r2": -0.105
+        }
+      ]
+    }
+  },
+  "feature_engineering": {
+    "features_used": [
+      "governorate_code",
+      "week",
+      "season",
+      "sin_week",
+      "cos_week",
+      "lag_1",
+      "lag_2",
+      "rolling_mean_4w",
+      "atc_J01CA04",
+      "atc_J01CE01",
+      "atc_J01DB01",
+      "atc_J01AA07",
+      "atc_J01FA01",
+      "atc_J01CR02",
+      "atc_J01XB01"
+    ],
+    "lags": [
+      "lag_1",
+      "lag_2",
+      "rolling_mean_4w"
+    ],
+    "cyclical": [
+      "sin_week",
+      "cos_week"
+    ],
+    "categorical": "one_hot_encoded_atc"
+  },
+  "dataset_provenance": "Synthetic simulation dataset generated via scripts/generate_data.py"
+}

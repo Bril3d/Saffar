@@ -1,33 +1,68 @@
 """
 SAFAR Chain — AI Service (FastAPI)
 Layer 1: Anomaly Detection (Isolation Forest) + Demand Forecasting (XGBoost)
+Provides backward-compatible REST API endpoints for veterinary anomaly detection,
+farm lot fraud detection, and regional antibiotic demand forecasting.
 """
 import os
+import sys
+from typing import Optional
 import pandas as pd
 import numpy as np
 import joblib
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="SAFAR AI Service", version="1.0.0")
+# Ensure scripts directory is on path for features module
+SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
+if SCRIPTS_DIR not in sys.path:
+    sys.path.append(SCRIPTS_DIR)
+
+from features import (
+    ATC_CODES,
+    AWARE_MAP,
+    GOVERNORATE_MAP,
+    REVERSE_GOV_MAP,
+    prepare_inference_features
+)
+
+app = FastAPI(title="SAFAR AI Service", version="1.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 BASE_DIR = os.path.dirname(__file__)
 MODEL_DIR = os.path.join(BASE_DIR, 'models')
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
-# Load models at startup
 models = {}
+datasets = {}
 
 def load_models():
+    """Loads trained model artifacts and historical demand data."""
     try:
         models['vet_anomaly'] = joblib.load(os.path.join(MODEL_DIR, 'vet_anomaly.joblib'))
         models['vet_scaler'] = joblib.load(os.path.join(MODEL_DIR, 'vet_scaler.joblib'))
         models['farm_anomaly'] = joblib.load(os.path.join(MODEL_DIR, 'farm_anomaly.joblib'))
         models['farm_scaler'] = joblib.load(os.path.join(MODEL_DIR, 'farm_scaler.joblib'))
         models['forecast'] = joblib.load(os.path.join(MODEL_DIR, 'demand_forecast.joblib'))
-        models['atc_encoder'] = joblib.load(os.path.join(MODEL_DIR, 'atc_encoder.joblib'))
-        print("[AI] All models loaded successfully")
+        
+        # Load metadata if available
+        meta_path = os.path.join(MODEL_DIR, 'forecast_metadata.joblib')
+        if os.path.exists(meta_path):
+            models['forecast_metadata'] = joblib.load(meta_path)
+        else:
+            models['forecast_metadata'] = {'train_stats': {'group_means': {}, 'global_mean': 100.0}}
+
+        # Backward compatibility encoder artifact
+        atc_path = os.path.join(MODEL_DIR, 'atc_encoder.joblib')
+        if os.path.exists(atc_path):
+            models['atc_encoder'] = joblib.load(atc_path)
+
+        # Cache demand history for lag feature computation at inference
+        demand_csv = os.path.join(DATA_DIR, 'demand_data.csv')
+        if os.path.exists(demand_csv):
+            datasets['demand'] = pd.read_csv(demand_csv)
+
+        print("[AI] All models and history loaded successfully")
     except Exception as e:
         print(f"[AI] Warning: Could not load models: {e}")
         print("[AI] Run generate_data.py and train scripts first!")
@@ -47,11 +82,14 @@ def vet_anomaly(vet_id: str):
     if 'vet_anomaly' not in models:
         raise HTTPException(503, "Anomaly model not loaded")
 
-    df = pd.read_csv(os.path.join(DATA_DIR, 'vet_data.csv'))
+    vet_csv = os.path.join(DATA_DIR, 'vet_data.csv')
+    if not os.path.exists(vet_csv):
+        raise HTTPException(503, "Veterinary dataset not found")
+
+    df = pd.read_csv(vet_csv)
     vet = df[df['vet_id'] == vet_id]
 
     if vet.empty:
-        # If vet not in training data, create a sample from median values
         raise HTTPException(404, f"Vet {vet_id} not found in dataset")
 
     features = ['prescriptions_per_month', 'unique_farms', 'avg_dosage', 'reserve_class_ratio']
@@ -62,7 +100,6 @@ def vet_anomaly(vet_id: str):
     prediction = models['vet_anomaly'].predict(X_scaled)[0]
     is_anomaly = bool(prediction == -1)
 
-    # Compute median for comparison
     median_rx = df['prescriptions_per_month'].median()
 
     return {
@@ -86,7 +123,11 @@ def farm_anomaly(farmer_id: str):
     if 'farm_anomaly' not in models:
         raise HTTPException(503, "Anomaly model not loaded")
 
-    df = pd.read_csv(os.path.join(DATA_DIR, 'farm_data.csv'))
+    farm_csv = os.path.join(DATA_DIR, 'farm_data.csv')
+    if not os.path.exists(farm_csv):
+        raise HTTPException(503, "Farm dataset not found")
+
+    df = pd.read_csv(farm_csv)
     farm = df[df['farmer_id'] == farmer_id]
 
     if farm.empty:
@@ -114,17 +155,8 @@ def farm_anomaly(farmer_id: str):
     }
 
 # ---- Demand Forecast ----
-GOVERNORATE_MAP = {
-    'Tunis': 0, 'Ariana': 1, 'Ben_Arous': 2, 'Manouba': 3, 'Nabeul': 4, 'Zaghouan': 5,
-    'Bizerte': 6, 'Beja': 7, 'Jendouba': 8, 'Kef': 9, 'Siliana': 10, 'Sousse': 11
-}
-
-ATC_CODES = ['J01CA04', 'J01CE01', 'J01DB01', 'J01AA07', 'J01FA01', 'J01CR02', 'J01XB01']
-AWARE_MAP = {'J01CA04': 'Access', 'J01CE01': 'Access', 'J01DB01': 'Access',
-             'J01AA07': 'Watch', 'J01FA01': 'Watch', 'J01CR02': 'Watch', 'J01XB01': 'Reserve'}
-
 @app.get("/ai/forecast/{governorate}")
-def forecast(governorate: str):
+def forecast(governorate: str, week: Optional[int] = Query(None, description="Optional target week to forecast")):
     if 'forecast' not in models:
         raise HTTPException(503, "Forecast model not loaded")
 
@@ -132,26 +164,42 @@ def forecast(governorate: str):
     if gov_code is None:
         raise HTTPException(404, f"Unknown governorate: {governorate}. Valid: {list(GOVERNORATE_MAP.keys())}")
 
-    # Predict next week (week 53 or current+1)
-    current_week = 20  # Simulated
-    next_week = current_week + 1
-    season = 0 if next_week <= 13 else (1 if next_week <= 26 else (2 if next_week <= 39 else 3))
+    # If week not specified, preserve existing default simulation behavior (predict week 21)
+    if week is not None:
+        next_week = max(1, min(53, int(week)))
+    else:
+        current_week = 20  # Simulated default
+        next_week = current_week + 1
+
+    season_idx = 0 if next_week <= 13 else (1 if next_week <= 26 else (2 if next_week <= 39 else 3))
+    season_names = ["Winter", "Spring", "Summer", "Autumn"]
+
+    # Retrieve cached demand dataset
+    demand_df = datasets.get('demand')
+    if demand_df is None:
+        demand_csv = os.path.join(DATA_DIR, 'demand_data.csv')
+        if os.path.exists(demand_csv):
+            demand_df = pd.read_csv(demand_csv)
+            datasets['demand'] = demand_df
+        else:
+            raise HTTPException(503, "Demand history dataset not found")
+
+    train_stats = models.get('forecast_metadata', {}).get('train_stats', {'group_means': {}, 'global_mean': 100.0})
+
+    # Prepare features for all 7 ATC codes with genuine past lags
+    X_inference = prepare_inference_features(demand_df, gov_code, next_week, train_stats)
+    preds = models['forecast'].predict(X_inference)
 
     predictions = []
-    for atc in ATC_CODES:
-        try:
-            atc_encoded = models['atc_encoder'].transform([atc])[0]
-        except ValueError:
-            continue
-        X = np.array([[gov_code, next_week, atc_encoded, season]])
-        pred = models['forecast'].predict(X)[0]
-
+    for atc, raw_pred in zip(ATC_CODES, preds):
+        pred_val = round(max(0.0, float(raw_pred)), 1)
+        
         trend = "stable"
-        if pred > 150: trend = "increasing"
-        elif pred < 50: trend = "decreasing"
+        if pred_val > 150: trend = "increasing"
+        elif pred_val < 50: trend = "decreasing"
 
         recommendations = []
-        if AWARE_MAP[atc] == 'Reserve' and pred > 20:
+        if AWARE_MAP[atc] == 'Reserve' and pred_val > 20:
             recommendations.append("WARNING: High demand for Reserve-class antibiotic")
         if trend == "increasing":
             recommendations.append("Consider increasing stock")
@@ -159,7 +207,7 @@ def forecast(governorate: str):
         predictions.append({
             "atcCode": atc,
             "awareClass": AWARE_MAP[atc],
-            "predictedDemand": round(float(pred), 1),
+            "predictedDemand": pred_val,
             "trend": trend,
             "recommendation": "; ".join(recommendations) if recommendations else "Normal demand expected"
         })
@@ -167,7 +215,7 @@ def forecast(governorate: str):
     return {
         "governorate": governorate,
         "week": next_week,
-        "season": ["Winter", "Spring", "Summer", "Autumn"][season],
+        "season": season_names[season_idx],
         "predictions": predictions
     }
 

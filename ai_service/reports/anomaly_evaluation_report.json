@@ -1,0 +1,303 @@
+{
+  "vet_evaluation": {
+    "dataset": "vet",
+    "models": {
+      "IsolationForest": {
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0,
+        "params": {
+          "contamination": 0.025,
+          "n_estimators": 100
+        }
+      },
+      "HeuristicRule": {
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      "ZScore_Threshold_2.5": {
+        "confusion_matrix": {
+          "tn": 39,
+          "fp": 1,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667,
+        "fpr": 0.025
+      },
+      "DummyPrior": {
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      }
+    },
+    "contamination_sweep": [
+      {
+        "contamination": 0.01,
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.02,
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.025,
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.03,
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.05,
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.08,
+        "confusion_matrix": {
+          "tn": 39,
+          "fp": 1,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667,
+        "fpr": 0.025
+      },
+      {
+        "contamination": 0.1,
+        "confusion_matrix": {
+          "tn": 37,
+          "fp": 3,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4,
+        "fpr": 0.075
+      }
+    ]
+  },
+  "farm_evaluation": {
+    "dataset": "farm",
+    "models": {
+      "IsolationForest": {
+        "confusion_matrix": {
+          "tn": 19,
+          "fp": 1,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667,
+        "fpr": 0.05,
+        "params": {
+          "contamination": 0.05,
+          "n_estimators": 100
+        }
+      },
+      "HeuristicRule": {
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      "ZScore_Threshold_2.5": {
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      "DummyPrior": {
+        "confusion_matrix": {
+          "tn": 19,
+          "fp": 1,
+          "fn": 1,
+          "tp": 0
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.05
+      }
+    },
+    "contamination_sweep": [
+      {
+        "contamination": 0.01,
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.02,
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.025,
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.03,
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 0,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0
+      },
+      {
+        "contamination": 0.05,
+        "confusion_matrix": {
+          "tn": 19,
+          "fp": 1,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667,
+        "fpr": 0.05
+      },
+      {
+        "contamination": 0.08,
+        "confusion_matrix": {
+          "tn": 18,
+          "fp": 2,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.3333,
+        "recall": 1.0,
+        "f1": 0.5,
+        "fpr": 0.1
+      },
+      {
+        "contamination": 0.1,
+        "confusion_matrix": {
+          "tn": 18,
+          "fp": 2,
+          "fn": 0,
+          "tp": 1
+        },
+        "precision": 0.3333,
+        "recall": 1.0,
+        "f1": 0.5,
+        "fpr": 0.1
+      }
+    ]
+  },
+  "note": "Evaluated strictly against synthetic simulation labels. Not real-world gold standards."
+}

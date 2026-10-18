@@ -49,14 +49,19 @@ app-example
 
 # ---- Backend Additions ----
 
-# Database
+# Database & Tracking
 *.db
 *.db-wal
 *.db-shm
 *.sqlite
 *.sqlite3
+mlruns/
+ai_service/mlruns/
+ai_service/mlflow.db
+.pytest_cache/
+ai_service/.pytest_cache/
 
-# AI Models (too large for git)
+# AI Models & Data (too large or generated)
 ai_service/models/*.joblib
 ai_service/data/*.csv
 

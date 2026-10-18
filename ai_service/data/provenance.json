@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "generated_at_utc": "2026-10-18T11:49:56.700867+00:00",
+  "random_seed": 42,
+  "provenance_type": "synthetic_simulation",
+  "is_real_world_data": false,
+  "description": "Algorithmic simulation of Tunisian agricultural veterinary compliance and antibiotic demand. Created solely for prototype demonstration and pipeline benchmarking. DO NOT cite these labels as clinical gold standards.",
+  "datasets": {
+    "vet_data.csv": {
+      "rows": 205,
+      "normal": 200,
+      "injected_outliers": 5,
+      "outlier_rate": 0.0244
+    },
+    "farm_data.csv": {
+      "rows": 105,
+      "normal": 100,
+      "injected_outliers": 5,
+      "outlier_rate": 0.0476
+    },
+    "demand_data.csv": {
+      "rows": 4368,
+      "weeks": 52,
+      "governorates": 12,
+      "drugs": 7
+    }
+  }
+}

@@ -1,0 +1,53 @@
+stages:
+  generate_data:
+    cmd: python scripts/generate_data.py
+    deps:
+      - scripts/generate_data.py
+    outs:
+      - data/vet_data.csv
+      - data/farm_data.csv
+      - data/demand_data.csv
+      - data/provenance.json
+
+  train_anomaly:
+    cmd: python scripts/train_anomaly.py
+    deps:
+      - scripts/train_anomaly.py
+      - data/vet_data.csv
+      - data/farm_data.csv
+    outs:
+      - models/vet_anomaly.joblib
+      - models/vet_scaler.joblib
+      - models/farm_anomaly.joblib
+      - models/farm_scaler.joblib
+
+  train_forecast:
+    cmd: python scripts/train_forecast.py
+    deps:
+      - scripts/train_forecast.py
+      - scripts/features.py
+      - data/demand_data.csv
+    outs:
+      - models/demand_forecast.joblib
+      - models/forecast_metadata.joblib
+      - models/atc_encoder.joblib
+
+  evaluate_anomaly:
+    cmd: python scripts/evaluate_anomaly.py
+    deps:
+      - scripts/evaluate_anomaly.py
+      - data/vet_data.csv
+      - data/farm_data.csv
+    metrics:
+      - reports/anomaly_evaluation_report.json:
+          cache: false
+
+  evaluate_forecast:
+    cmd: python scripts/evaluate_forecast.py
+    deps:
+      - scripts/evaluate_forecast.py
+      - scripts/features.py
+      - data/demand_data.csv
+    metrics:
+      - reports/forecast_evaluation_report.json:
+          cache: false
